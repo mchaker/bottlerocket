@@ -25,7 +25,7 @@ pub struct ValidBase64 {
 }
 
 /// Validate base64 format before we accept the input.
-impl TryFrom<&str> for ValidBase64 {
+impl FromStr for ValidBase64 {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -68,7 +68,7 @@ pub struct SingleLineString {
     inner: String,
 }
 
-impl TryFrom<&str> for SingleLineString {
+impl FromStr for SingleLineString {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -145,7 +145,7 @@ lazy_static! {
     pub(crate) static ref VALID_LINUX_HOSTNAME: Regex = Regex::new(r"^[0-9a-z.-]{1,253}$").unwrap();
 }
 
-impl TryFrom<&str> for ValidLinuxHostname {
+impl FromStr for ValidLinuxHostname {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -242,7 +242,7 @@ pub struct Identifier {
 
 const CONTAINERD_ID_LENGTH: usize = 76;
 
-impl TryFrom<&str> for Identifier {
+impl FromStr for Identifier {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -299,7 +299,7 @@ pub struct Url {
     inner: String,
 }
 
-impl TryFrom<&str> for Url {
+impl FromStr for Url {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -369,7 +369,7 @@ pub struct FriendlyVersion {
     inner: String,
 }
 
-impl TryFrom<&str> for FriendlyVersion {
+impl FromStr for FriendlyVersion {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -394,7 +394,7 @@ impl TryFrom<&str> for FriendlyVersion {
     }
 }
 
-impl TryFrom<FriendlyVersion> for semver::Version {
+impl FromStr for semver::Version {
     type Error = semver::Error;
 
     fn try_from(input: FriendlyVersion) -> Result<semver::Version, Self::Error> {
@@ -475,7 +475,7 @@ pub struct DNSDomain {
     inner: String,
 }
 
-impl TryFrom<&str> for DNSDomain {
+impl FromStr for DNSDomain {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, error::Error> {
@@ -550,7 +550,7 @@ lazy_static! {
     pub(crate) static ref SYSCTL_KEY: Regex = Regex::new(r"^[a-zA-Z0-9./_-]{1,128}$").unwrap();
 }
 
-impl TryFrom<&str> for SysctlKey {
+impl FromStr for SysctlKey {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, error::Error> {
@@ -654,7 +654,7 @@ pub struct Lockdown {
     inner: String,
 }
 
-impl TryFrom<&str> for Lockdown {
+impl FromStr for Lockdown {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, error::Error> {
@@ -677,7 +677,7 @@ pub struct BootstrapContainerMode {
     inner: String,
 }
 
-impl TryFrom<&str> for BootstrapContainerMode {
+impl FromStr for BootstrapContainerMode {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, error::Error> {
@@ -725,7 +725,7 @@ pub struct PemCertificateString {
     inner: String,
 }
 
-impl TryFrom<&str> for PemCertificateString {
+impl FromStr for PemCertificateString {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, error::Error> {

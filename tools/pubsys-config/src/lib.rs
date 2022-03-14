@@ -170,7 +170,7 @@ pub struct KMSKeyConfig {
     pub key_stack_arns: HashMap<String, String>,
 }
 
-impl TryFrom<SigningKeyConfig> for Url {
+impl FromStr for Url {
     type Error = ();
     fn try_from(key: SigningKeyConfig) -> std::result::Result<Self, Self::Error> {
         match key {

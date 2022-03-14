@@ -121,7 +121,7 @@ pub mod error {
 /// messages, etc.).
 macro_rules! string_impls_for {
     ($for:ident, $for_str:expr) => {
-        impl TryFrom<String> for $for {
+        impl FromStr for $for {
             type Error = $crate::modeled_types::error::Error;
 
             fn try_from(input: String) -> Result<Self, Self::Error> {

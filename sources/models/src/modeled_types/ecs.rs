@@ -30,7 +30,7 @@ lazy_static! {
     .unwrap();
 }
 
-impl TryFrom<&str> for ECSAttributeKey {
+impl FromStr for ECSAttributeKey {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -115,7 +115,7 @@ lazy_static! {
     .unwrap();
 }
 
-impl TryFrom<&str> for ECSAttributeValue {
+impl FromStr for ECSAttributeValue {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -196,7 +196,7 @@ enum ECSLogLevel {
 
 string_impls_for!(ECSAgentLogLevel, "ECSAgentLogLevel");
 
-impl TryFrom<&str> for ECSAgentLogLevel {
+impl FromStr for ECSAgentLogLevel {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {

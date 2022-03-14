@@ -22,7 +22,7 @@ lazy_static! {
     pub(crate) static ref KUBERNETES_NAME: Regex = Regex::new(r"^[0-9a-z.-]{1,253}$").unwrap();
 }
 
-impl TryFrom<&str> for KubernetesName {
+impl FromStr for KubernetesName {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -88,7 +88,7 @@ lazy_static! {
     .unwrap();
 }
 
-impl TryFrom<&str> for KubernetesLabelKey {
+impl FromStr for KubernetesLabelKey {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -164,7 +164,7 @@ lazy_static! {
     .unwrap();
 }
 
-impl TryFrom<&str> for KubernetesLabelValue {
+impl FromStr for KubernetesLabelValue {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -237,7 +237,7 @@ lazy_static! {
     .unwrap();
 }
 
-impl TryFrom<&str> for KubernetesTaintValue {
+impl FromStr for KubernetesTaintValue {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -304,7 +304,7 @@ pub struct KubernetesClusterName {
     inner: String,
 }
 
-impl TryFrom<&str> for KubernetesClusterName {
+impl FromStr for KubernetesClusterName {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -360,7 +360,7 @@ pub struct KubernetesAuthenticationMode {
     inner: String,
 }
 
-impl TryFrom<&str> for KubernetesAuthenticationMode {
+impl FromStr for KubernetesAuthenticationMode {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, error::Error> {
@@ -411,7 +411,7 @@ lazy_static! {
         Regex::new(r"^[a-z0-9]{6}\.[a-z0-9]{16}$").unwrap();
 }
 
-impl TryFrom<&str> for KubernetesBootstrapToken {
+impl FromStr for KubernetesBootstrapToken {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -478,7 +478,7 @@ enum EvictionSignal {
     PidAvailable,
 }
 
-impl TryFrom<&str> for KubernetesEvictionHardKey {
+impl FromStr for KubernetesEvictionHardKey {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -544,7 +544,7 @@ lazy_static! {
     .unwrap();
 }
 
-impl TryFrom<&str> for KubernetesThresholdValue {
+impl FromStr for KubernetesThresholdValue {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -625,7 +625,7 @@ enum ReservedResources {
     EphemeralStorage,
 }
 
-impl TryFrom<&str> for KubernetesReservedResourceKey {
+impl FromStr for KubernetesReservedResourceKey {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -674,7 +674,7 @@ pub struct KubernetesQuantityValue {
     inner: String,
 }
 
-impl TryFrom<&str> for KubernetesQuantityValue {
+impl FromStr for KubernetesQuantityValue {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -735,7 +735,7 @@ pub struct KubernetesCloudProvider {
     inner: String,
 }
 
-impl TryFrom<&str> for KubernetesCloudProvider {
+impl FromStr for KubernetesCloudProvider {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, error::Error> {
@@ -787,7 +787,7 @@ enum ValidCpuManagerPolicy {
     None,
 }
 
-impl TryFrom<&str> for CpuManagerPolicy {
+impl FromStr for CpuManagerPolicy {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -835,7 +835,7 @@ lazy_static! {
     .unwrap();
 }
 
-impl TryFrom<&str> for KubernetesDurationValue {
+impl FromStr for KubernetesDurationValue {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -909,7 +909,7 @@ enum ValidTopologyManagerScope {
     Pod,
 }
 
-impl TryFrom<&str> for TopologyManagerScope {
+impl FromStr for TopologyManagerScope {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -962,7 +962,7 @@ enum ValidTopologyManagerPolicy {
     SingleNumaNode,
 }
 
-impl TryFrom<&str> for TopologyManagerPolicy {
+impl FromStr for TopologyManagerPolicy {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
