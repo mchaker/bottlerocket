@@ -296,7 +296,7 @@ dependencies = [
  "libc",
  "log",
  "models",
- "nix 0.23.1",
+ "nix 0.24.1",
  "rand",
  "reqwest",
  "retry-read",
@@ -331,7 +331,7 @@ dependencies = [
  "log",
  "maplit",
  "models",
- "nix 0.23.1",
+ "nix 0.24.1",
  "num",
  "percent-encoding",
  "rand",
@@ -1965,7 +1965,7 @@ dependencies = [
  "chrono",
  "log",
  "lz4",
- "nix 0.23.1",
+ "nix 0.24.1",
  "pentacle",
  "rand",
  "regex",
@@ -2102,12 +2102,11 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.23.1"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f866317acbd3a240710c63f065ffb1e4fd466259045ccb504130b7f668f35c6"
+checksum = "8f17df307904acd05aa8e32e97bb20f2a0df1728bbc2d771ae8f9a90463441e9"
 dependencies = [
  "bitflags",
- "cc",
  "cfg-if",
  "libc",
  "memoffset",
@@ -2502,7 +2501,7 @@ dependencies = [
  "argh",
  "cargo-readme",
  "log",
- "nix 0.23.1",
+ "nix 0.24.1",
  "signpost",
  "simplelog",
  "snafu",
@@ -3177,7 +3176,7 @@ version = "0.1.0"
 dependencies = [
  "cargo-readme",
  "log",
- "nix 0.23.1",
+ "nix 0.24.1",
  "simplelog",
  "snafu",
 ]
@@ -3459,7 +3458,7 @@ dependencies = [
  "log",
  "maplit",
  "models",
- "nix 0.23.1",
+ "nix 0.24.1",
  "schnauzer",
  "serde_json",
  "simplelog",
@@ -3480,7 +3479,7 @@ dependencies = [
  "http",
  "log",
  "models",
- "nix 0.23.1",
+ "nix 0.24.1",
  "num-derive",
  "num-traits",
  "semver",
