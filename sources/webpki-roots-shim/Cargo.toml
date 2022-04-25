@@ -21,4 +21,4 @@ exclude = ["README.md"]
 lazy_static = "1.4.0"
 log = "0.4"
 pem = "1.0.2"
-webpki = "0.21.0"
+webpki = "0.22.0"
