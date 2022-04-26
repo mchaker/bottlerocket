@@ -11,7 +11,7 @@ exclude = ["README.md"]
 [dependencies]
 argh = "0.1.4"
 dns-lookup = "1.0"
-ipnet = { version = "2.0", features = ["serde"] }
+ipnet = { version = "2.5", features = ["serde"] }
 envy = "0.4"
 lazy_static = "1.2"
 rand = { version = "0.8", default-features = false, features = ["std", "std_rng"] }
