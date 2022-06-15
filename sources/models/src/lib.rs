@@ -218,6 +218,8 @@ struct KubernetesSettings {
     topology_manager_scope: TopologyManagerScope,
     topology_manager_policy: TopologyManagerPolicy,
     pod_pids_limit: i64,
+    image_gc_high_threshold_percent: i32,
+    image_gc_low_threshold_percent: i32,
     provider_id: Url,
 
     // Settings where we generate a value based on the runtime environment.  The user can specify a
