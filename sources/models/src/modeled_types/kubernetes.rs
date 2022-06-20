@@ -1002,6 +1002,161 @@ mod test_topology_manager_policy {
 
 // =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
 
+/// imageGCHighThresholdPercent is the percent of disk usage after which image
+/// garbage collection is always run. The percent is calculated by dividing this
+/// field value by 100, so this field must be between 0 and 100, inclusive. When
+/// specified, the value must be greater than imageGCLowThresholdPercent.
+/// Default: 85
+/// https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct ImageGCHighThresholdPercent {
+    inner: i32,
+}
+
+impl TryFrom<&str> for ImageGCHighThresholdPercent {
+    type Error = error::Error;
+
+    fn try_from(input: &str) -> Result<Self, Self::Error> {
+        let min_threshold_percent: i32 = 0;
+        let max_threshold_percent: i32 = 100;
+
+        ensure!(
+            !input.is_empty(),
+            error::InvalidImageGCLowThresholdPercentSnafu {
+                input,
+                msg: "must not be empty",
+            }
+        );
+        ensure!(
+            input.parse::<i32>().unwrap().ge(&min_threshold_percent),
+            error::InvalidImageGCLowThresholdPercentSnafu {
+                input,
+                msg: "must be greater than or equal to 0"
+            }
+        );
+        ensure!(
+            input.parse::<i32>().unwrap().le(&max_threshold_percent),
+            error::InvalidImageGCLowThresholdPercentSnafu {
+                input,
+                msg: "must be less than or equal to 100"
+            }
+        );
+
+        Ok(ImageGCHighThresholdPercent {
+            inner: input.parse::<i32>().unwrap(),
+        })
+    }
+}
+string_impls_for!(ImageGCHighThresholdPercent, "ImageGCHighThresholdPercent");
+
+#[cfg(test)]
+mod test_image_gc_high_threshold_percent {
+    use super::ImageGCHighThresholdPercent;
+    use std::convert::TryFrom;
+
+    #[test]
+    fn image_gc_high_threshold_percent_between_0_and_100_inclusive() {
+        for ok in &["0", "1", "99", "100"] {
+            ImageGCHighThresholdPercent::try_from(*ok).unwrap();
+        }
+    }
+
+    #[test]
+    fn image_gc_high_threshold_percent_less_than_0_fails() {
+        for err in &["-1"] {
+            ImageGCHighThresholdPercent::try_from(*err).unwrap();
+        }
+    }
+
+    #[test]
+    fn image_gc_high_threshold_percent_greater_than_100_fails() {
+        for err in &["101"] {
+            ImageGCHighThresholdPercent::try_from(*err).unwrap();
+        }
+    }
+}
+
+// =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
+
+/// imageGCLowThresholdPercent is the percent of disk usage before which image
+/// garbage collection is never run. Lowest disk usage to garbage collect to.
+/// The percent is calculated by dividing this field value by 100, so the field
+/// value must be between 0 and 100, inclusive. When specified, the value must
+/// be less than imageGCHighThresholdPercent.
+/// Default: 80
+/// https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct ImageGCLowThresholdPercent {
+    inner: i32,
+}
+
+impl TryFrom<&str> for ImageGCLowThresholdPercent {
+    type Error = error::Error;
+
+    fn try_from(input: &str) -> Result<Self, Self::Error> {
+        let min_threshold_percent: i32 = 0;
+        let max_threshold_percent: i32 = 100;
+
+        ensure!(
+            !input.is_empty(),
+            error::InvalidImageGCLowThresholdPercentSnafu {
+                input,
+                msg: "must not be empty",
+            }
+        );
+        ensure!(
+            input.parse::<i32>().unwrap().ge(&min_threshold_percent),
+            error::InvalidImageGCLowThresholdPercentSnafu {
+                input,
+                msg: "must be greater than or equal to 0"
+            }
+        );
+        ensure!(
+            input.parse::<i32>().unwrap().le(&max_threshold_percent),
+            error::InvalidImageGCLowThresholdPercentSnafu {
+                input,
+                msg: "must be less than or equal to 100"
+            }
+        );
+
+        Ok(ImageGCLowThresholdPercent {
+            inner: input.parse::<i32>().unwrap(),
+        })
+    }
+}
+string_impls_for!(ImageGCLowThresholdPercent, "ImageGCLowThresholdPercent");
+
+#[cfg(test)]
+mod test_image_gc_low_threshold_percent {
+    use super::ImageGCLowThresholdPercent;
+    use std::convert::TryFrom;
+
+    #[test]
+    fn image_gc_low_threshold_percent_between_0_and_100_inclusive() {
+        for ok in &["0", "1", "99", "100"] {
+            ImageGCLowThresholdPercent::try_from(*ok).unwrap();
+        }
+    }
+
+    #[test]
+    fn image_gc_low_threshold_percent_less_than_0_fails() {
+        for err in &["-1"] {
+            ImageGCLowThresholdPercent::try_from(*err).unwrap();
+        }
+    }
+
+    #[test]
+    fn image_gc_low_threshold_percent_greater_than_100_fails() {
+        for err in &["101"] {
+            ImageGCLowThresholdPercent::try_from(*err).unwrap();
+        }
+    }
+}
+
+// =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
+
 /// KubernetesClusterDnsIp represents the --cluster-dns settings for kubelet.
 ///
 /// This model allows the value to be either a list of IPs, or a single IP string
