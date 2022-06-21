@@ -1197,6 +1197,7 @@ pub fn validate_image_gc_threshold_percent(
     trace!("Number of params: {}", helper.params().len());
     check_param_count(helper, template_name, 2)?;
 
+    /*
     // Get the GC Threshold Percentage values out of the template.
     // Get the GC High Threshold Percent from the template
     let image_gc_high_threshold_percent_param = get_param(helper, 0)?;
@@ -1207,7 +1208,7 @@ pub fn validate_image_gc_threshold_percent(
             value: image_gc_high_threshold_percent_param.to_owned(),
             template: template_name.to_owned(),
         })?;
-    trace!(
+    info!(
         "imageGCHighThresholdPercent value from template: {}",
         image_gc_high_threshold_percent,
     );
@@ -1221,12 +1222,14 @@ pub fn validate_image_gc_threshold_percent(
             value: image_gc_low_threshold_percent_param.to_owned(),
             template: template_name.to_owned(),
         })?;
-    trace!(
+    info!(
         "imageGCLowThresholdPercent value from template: {}",
         image_gc_low_threshold_percent,
     );
+    */
 
     // Keep track if the user supplied a value or not
+    /*
     let mut image_gc_high_threshold_was_null: bool = false;
     let mut image_gc_low_threshold_was_null: bool = false;
 
@@ -1242,7 +1245,9 @@ pub fn validate_image_gc_threshold_percent(
     }
 
     // Validate that imageGCHighThresholdPercent is greater than imageGCLowThresholdPercent
-    if image_gc_high_threshold_percent <= image_gc_low_threshold_percent {
+    if image_gc_high_threshold_percent.parse::<i32>().unwrap()
+        <= image_gc_low_threshold_percent.parse::<i32>().unwrap()
+    {
         if (!image_gc_high_threshold_was_null) && (!image_gc_low_threshold_was_null) {
             // Both values were set but broke the High > Low rule
             trace!(
@@ -1320,6 +1325,28 @@ pub fn validate_image_gc_threshold_percent(
             template: template_name.to_owned(),
         })?;
     }
+    */
+
+    out.write(
+        format!(
+            "imageGCHighThresholdPercent: {}",
+            "85" //image_gc_high_threshold_percent
+        )
+        .as_str(),
+    )
+    .context(error::TemplateWriteSnafu {
+        template: template_name.to_owned(),
+    })?;
+    out.write(
+        format!(
+            "imageGCLowThresholdPercent: {}",
+            "80" //image_gc_low_threshold_percent
+        )
+        .as_str(),
+    )
+    .context(error::TemplateWriteSnafu {
+        template: template_name.to_owned(),
+    })?;
 
     Ok(())
 }
