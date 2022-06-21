@@ -12,6 +12,10 @@ use std::fmt;
 use std::net::IpAddr;
 use std::ops::Deref;
 
+// Declare constant values usable by any type
+const IMAGE_GC_THRESHOLD_MAX: i32 = 100;
+const IMAGE_GC_THRESHOLD_MIN: i32 = 0;
+
 /// KubernetesName represents a string that contains a valid Kubernetes resource name.  It stores
 /// the original string and makes it accessible through standard traits.
 // https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -1012,16 +1016,13 @@ mod test_topology_manager_policy {
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ImageGCHighThresholdPercent {
-    inner: i32,
+    inner: String,
 }
 
 impl TryFrom<&str> for ImageGCHighThresholdPercent {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
-        let min_threshold_percent: i32 = 0;
-        let max_threshold_percent: i32 = 100;
-
         ensure!(
             !input.is_empty(),
             error::InvalidImageGCLowThresholdPercentSnafu {
@@ -1030,14 +1031,14 @@ impl TryFrom<&str> for ImageGCHighThresholdPercent {
             }
         );
         ensure!(
-            input.parse::<i32>().unwrap().ge(&min_threshold_percent),
+            input.parse::<i32>().unwrap().ge(&IMAGE_GC_THRESHOLD_MIN),
             error::InvalidImageGCLowThresholdPercentSnafu {
                 input,
                 msg: "must be greater than or equal to 0"
             }
         );
         ensure!(
-            input.parse::<i32>().unwrap().le(&max_threshold_percent),
+            input.parse::<i32>().unwrap().le(&IMAGE_GC_THRESHOLD_MAX),
             error::InvalidImageGCLowThresholdPercentSnafu {
                 input,
                 msg: "must be less than or equal to 100"
@@ -1045,7 +1046,7 @@ impl TryFrom<&str> for ImageGCHighThresholdPercent {
         );
 
         Ok(ImageGCHighThresholdPercent {
-            inner: input.parse::<i32>().unwrap(),
+            inner: input.to_owned(),
         })
     }
 }
@@ -1090,18 +1091,13 @@ mod test_image_gc_high_threshold_percent {
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ImageGCLowThresholdPercent {
-    inner: i32,
+    inner: String,
 }
-
-pub static IMAGE_GC_THRESHOLD_MAX = 100;
 
 impl TryFrom<&str> for ImageGCLowThresholdPercent {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
-        let min_threshold_percent: i32 = 0;
-        let max_threshold_percent: i32 = 100;
-
         ensure!(
             !input.is_empty(),
             error::InvalidImageGCLowThresholdPercentSnafu {
@@ -1110,14 +1106,14 @@ impl TryFrom<&str> for ImageGCLowThresholdPercent {
             }
         );
         ensure!(
-            input.parse::<i32>().unwrap().ge(&min_threshold_percent),
+            input.parse::<i32>().unwrap().ge(&IMAGE_GC_THRESHOLD_MIN),
             error::InvalidImageGCLowThresholdPercentSnafu {
                 input,
                 msg: "must be greater than or equal to 0"
             }
         );
         ensure!(
-            input.parse::<i32>().unwrap().le(&max_threshold_percent),
+            input.parse::<i32>().unwrap().le(&IMAGE_GC_THRESHOLD_MAX),
             error::InvalidImageGCLowThresholdPercentSnafu {
                 input,
                 msg: "must be less than or equal to 100"
@@ -1125,7 +1121,7 @@ impl TryFrom<&str> for ImageGCLowThresholdPercent {
         );
 
         Ok(ImageGCLowThresholdPercent {
-            inner: input.parse::<i32>().unwrap(),
+            inner: input.to_owned(),
         })
     }
 }

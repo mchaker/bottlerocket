@@ -1196,8 +1196,19 @@ pub fn validate_image_gc_threshold_percent(
 
     // Check number of parameters, must be exactly two (high and low GC threshold percentages)
     trace!("Number of params: {}", helper.params().len());
-    check_param_count(helper, template_name, 2)?;
+    check_param_count(helper, template_name, 1)?;
 
+    let test_val_param = get_param(helper, 0)?;
+    let test_val = test_val_param
+        .as_str()
+        .with_context(|| error::InvalidTemplateValueSnafu {
+            expected: "string",
+            value: test_val_param.to_owned(),
+            template: template_name.to_owned(),
+        })?;
+    info!("test value param: {}", test_val);
+
+    /*
     // Get the GC Threshold Percentage values out of the template.
     // Get the GC High Threshold Percent from the template
     let image_gc_high_threshold_percent_param = get_param(helper, 0)?;
@@ -1226,6 +1237,7 @@ pub fn validate_image_gc_threshold_percent(
         "imageGCLowThresholdPercent value from template: {}",
         image_gc_low_threshold_percent,
     );
+    */
 
     // Keep track if the user supplied a value or not
     /*
@@ -1326,6 +1338,12 @@ pub fn validate_image_gc_threshold_percent(
     }
     */
 
+    out.write(format!("testValueParam: {}", test_val).as_str())
+        .context(error::TemplateWriteSnafu {
+            template: template_name.to_owned(),
+        })?;
+
+    /*
     out.write(
         format!(
             "imageGCHighThresholdPercent: {}",
@@ -1346,6 +1364,7 @@ pub fn validate_image_gc_threshold_percent(
     .context(error::TemplateWriteSnafu {
         template: template_name.to_owned(),
     })?;
+    */
 
     Ok(())
 }
