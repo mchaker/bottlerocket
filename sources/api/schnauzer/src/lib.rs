@@ -136,8 +136,8 @@ pub fn build_template_registry() -> Result<handlebars::Handlebars<'static>> {
     template_registry.register_helper("localhost_aliases", Box::new(helpers::localhost_aliases));
     template_registry.register_helper("etc_hosts_entries", Box::new(helpers::etc_hosts_entries));
     template_registry.register_helper(
-        "validate_image_gc_threshold_percent",
-        Box::new(helpers::validate_image_gc_threshold_percent),
+        "image_gc_threshold_percent",
+        Box::new(helpers::image_gc_threshold_percent),
     );
 
     Ok(template_registry)

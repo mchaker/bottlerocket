@@ -1182,7 +1182,7 @@ pub fn etc_hosts_entries(
 /// is out of bounds. Otherwise, this helper accepts the setting.
 /// ! NOTE: the parameters MUST be specified as imageGCHighThresholdPercent first,
 /// then imageGCLowThresholdPercent second.
-pub fn validate_image_gc_threshold_percent(
+pub fn image_gc_threshold_percent(
     helper: &Helper<'_, '_>,
     _: &Handlebars,
     _: &Context,
@@ -1190,7 +1190,7 @@ pub fn validate_image_gc_threshold_percent(
     out: &mut dyn Output,
 ) -> Result<(), RenderError> {
     // To give context to our errors, get the template name, if available.
-    trace!("Starting validate_image_gc_threshold_percent helper");
+    trace!("Starting image_gc_threshold_percent helper");
     let template_name = template_name(renderctx);
     trace!("Template name: {}", &template_name);
 
