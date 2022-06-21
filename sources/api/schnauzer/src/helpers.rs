@@ -160,6 +160,12 @@ mod error {
             template: String,
         },
 
+        #[snafu(display("Invalid template value, {} in template {}", message, template))]
+        InvalidTemplateValueCustomMessage {
+            message: &'static str,
+            template: String,
+        },
+
         #[snafu(display(
             "Unable to parse template value, expected {}, got '{}' in template {}: '{}'",
             expected,
@@ -1189,106 +1195,67 @@ pub fn validate_image_gc_threshold_percent(
 
     // Check number of parameters, must be exactly two (high and low GC threshold percentages)
     trace!("Number of params: {}", helper.params().len());
-    check_param_count(helper, template_name, 3)?;
+    check_param_count(helper, template_name, 2)?;
 
     // Get the GC Threshold Percentage values out of the template.
-    // First: get which GC Threshold Percent value we are trying to set in this
-    // call of the helper function (high or low)
-    let threshold_value_to_set_param = get_param(helper, 0)?;
-    let threshold_value_to_set = threshold_value_to_set_param.as_str().with_context(|| {
-        error::InvalidTemplateValueSnafu {
-            expected: "string",
-            value: threshold_value_to_set_param.to_owned(),
-            template: template_name,
-        }
-    })?;
-    trace!(
-        "Threshold percentage to set from template: {}",
-        threshold_value_to_set,
-    );
-    if !(&["high", "low"].contains(&threshold_value_to_set)) {
-        return Err(RenderError::from(error::InvalidTemplateValueSnafu {
-            expected: "'high' or 'low'",
-            value: threshold_value_to_set_param.to_owned(),
-            template: template_name,
-        }));
-    }
-
     // Get the GC High Threshold Percent from the template
-    let image_gc_high_threshold_percent_param = get_param(helper, 1)?;
-    let image_gc_high_threshold_percent = image_gc_high_threshold_percent_param
-        .as_i32()
-        .with_context(|| error::ConvertNumberSnafu {
-            what: "imageGCHighThresholdPercent",
-            number: image_gc_high_threshold_percent_param,
-            target: "i32 (32-bit integer)",
+    let image_gc_high_threshold_percent_param = get_param(helper, 0)?;
+    let mut image_gc_high_threshold_percent = image_gc_high_threshold_percent_param
+        .as_str()
+        .with_context(|| error::InvalidTemplateValueSnafu {
+            expected: "string",
+            value: image_gc_high_threshold_percent_param.to_owned(),
+            template: template_name.to_owned(),
         })?;
     trace!(
         "imageGCHighThresholdPercent value from template: {}",
         image_gc_high_threshold_percent,
     );
-    // Check if the GC High Threshold Percent is out of bounds
-    if (!image_gc_high_threshold_percent.is_null())
-        && ((image_gc_high_threshold_percent > 100) || (image_gc_high_threshold_percent < 0))
-    {
-        return Err(RenderError::from(
-            error::TemplateHelperError::InvalidTemplateValue {
-                expected: "integer between 0 and 100, inclusive",
-                value: image_gc_high_threshold_percent_param.to_owned(),
-                template: template_name,
-            },
-        ));
-    }
 
     // Get the GC Low Threshold Percent from the template
-    let image_gc_low_threshold_percent_param = get_param(helper, 2)?;
-    let image_gc_low_threshold_percent = image_gc_low_threshold_percent_param
-        .as_i32()
-        .with_context(|| error::ConvertNumberSnafu {
-            what: "imageGCLowThresholdPercent",
-            number: image_gc_low_threshold_percent_param,
-            target: "i32 (32-bit integer)",
+    let image_gc_low_threshold_percent_param = get_param(helper, 1)?;
+    let mut image_gc_low_threshold_percent = image_gc_low_threshold_percent_param
+        .as_str()
+        .with_context(|| error::InvalidTemplateValueSnafu {
+            expected: "string",
+            value: image_gc_low_threshold_percent_param.to_owned(),
+            template: template_name.to_owned(),
         })?;
     trace!(
         "imageGCLowThresholdPercent value from template: {}",
         image_gc_low_threshold_percent,
     );
-    // Check if the GC Low Threshold Percent is out of bounds
-    if (!image_gc_low_threshold_percent.is_null())
-        && ((image_gc_low_threshold_percent > 100) || (image_gc_low_threshold_percent < 0))
-    {
-        return Err(RenderError::from(
-            error::TemplateHelperError::InvalidTemplateValue {
-                expected: "integer between 0 and 100, inclusive",
-                value: image_gc_low_threshold_percent_param.to_owned(),
-                template: template_name,
-            },
-        ));
-    }
 
-    let image_gc_high_threshold_was_null: bool = false;
-    let image_gc_low_threshold_was_null: bool = false;
+    // Keep track if the user supplied a value or not
+    let mut image_gc_high_threshold_was_null: bool = false;
+    let mut image_gc_low_threshold_was_null: bool = false;
 
-    if image_gc_high_threshold_percent.is_null() {
+    if image_gc_high_threshold_percent.is_empty() {
         // If the high threshold percent is not set, assume the default value.
-        image_gc_high_threshold_percent = 85;
+        image_gc_high_threshold_percent = "85";
         image_gc_high_threshold_was_null = true;
     }
-    if image_gc_low_threshold_percent.is_null() {
+    if image_gc_low_threshold_percent.is_empty() {
         // If the low threshold percent is not set, assume the default value.
-        image_gc_low_threshold_percent = 80;
+        image_gc_low_threshold_percent = "80";
         image_gc_low_threshold_was_null = true;
     }
 
     // Validate that imageGCHighThresholdPercent is greater than imageGCLowThresholdPercent
     if image_gc_high_threshold_percent <= image_gc_low_threshold_percent {
-        if (!image_gc_high_threshold_was_null && !image_gc_low_threshold_was_null) {
+        if (!image_gc_high_threshold_was_null) && (!image_gc_low_threshold_was_null) {
             // Both values were set but broke the High > Low rule
             trace!(
-                "Failed to set imageGCLowThresholdPercent and imageGCHighThresholdPercent. imageGCLowThresholdPercent must be less than imageGCHighThresholdPercent.",
+                "Failed to set imageGCLowThresholdPercent and imageGCHighThresholdPercent. imageGCLowThresholdPercent (attempted to set {}) must be less than imageGCHighThresholdPercent (attempted to set {}).",
                 image_gc_low_threshold_percent,
                 image_gc_high_threshold_percent,
             );
+            return Err(RenderError::from(
+                error::TemplateHelperError::InvalidTemplateValueCustomMessage {
+                    message: "rule is (imageGCLowThresholdPercent < imageGCHighThresholdPercent) but got (imageGCLowThresholdPercent >= imageGCHighThresholdPercent)",
+                    template: template_name.to_owned(),
+                },
+            ));
         }
 
         // Only the High threshold was set and it was lower than the default Low value
@@ -1298,6 +1265,13 @@ pub fn validate_image_gc_threshold_percent(
                 image_gc_high_threshold_percent,
                 image_gc_low_threshold_percent,
             );
+            return Err(RenderError::from(
+                error::TemplateHelperError::InvalidTemplateValue {
+                    expected: "imageGCLowThresholdPercent < imageGCHighThresholdPercent",
+                    value: image_gc_high_threshold_percent_param.to_owned(),
+                    template: template_name.to_owned(),
+                },
+            ));
         }
 
         // Only the Low value was set and it was higher than the default High value
@@ -1307,26 +1281,45 @@ pub fn validate_image_gc_threshold_percent(
                 image_gc_low_threshold_percent,
                 image_gc_high_threshold_percent,
             );
+            return Err(RenderError::from(
+                error::TemplateHelperError::InvalidTemplateValue {
+                    expected: "imageGCLowThresholdPercent < imageGCHighThresholdPercent",
+                    value: image_gc_low_threshold_percent_param.to_owned(),
+                    template: template_name.to_owned(),
+                },
+            ));
         }
-
-        return Err(RenderError::from(
-            error::TemplateHelperError::InvalidTemplateValue {
-                expected: "imageGCLowThresholdPercent < imageGCHighThresholdPercent",
-                value: "imageGCLowThresholdPercent >= imageGCHighThresholdPercent",
-                template: template_name,
-            },
-        ));
     }
 
-    let output_gc_threshold = match threshold_value_to_set {
-        "high" => image_gc_high_threshold_percent,
-        "low" => image_gc_low_threshold_percent,
-    };
-
-    out.write(&output_gc_threshold)
+    // Write out the Image GC Threshold Percentage settings IN FULL since we
+    // may need to write more than one setting from a single helper function
+    // call.
+    if !(image_gc_high_threshold_was_null) {
+        trace!("Writing imageGCHighThresholdPercent",);
+        out.write(
+            format!(
+                "imageGCHighThresholdPercent: {}",
+                image_gc_high_threshold_percent
+            )
+            .as_str(),
+        )
         .context(error::TemplateWriteSnafu {
             template: template_name.to_owned(),
         })?;
+    }
+    if !(image_gc_low_threshold_was_null) {
+        trace!("Writing imageGCLowThresholdPercent",);
+        out.write(
+            format!(
+                "imageGCLowThresholdPercent: {}",
+                image_gc_low_threshold_percent
+            )
+            .as_str(),
+        )
+        .context(error::TemplateWriteSnafu {
+            template: template_name.to_owned(),
+        })?;
+    }
 
     Ok(())
 }

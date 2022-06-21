@@ -93,12 +93,7 @@ topologyManagerPolicy: {{settings.kubernetes.topology-manager-policy}}
 {{#if settings.kubernetes.pod-pids-limit includeZero=true}}
 podPidsLimit: {{settings.kubernetes.pod-pids-limit}}
 {{/if}}
-{{#if settings.kubernetes.image-gc-high-threshold-percent includeZero=true}}
-imageGCHighThresholdPercent: {{default "85" settings.kubernetes.image-gc-high-threshold-percent}}
-{{/if}}
-{{#if settings.kubernetes.image-gc-low-threshold-percent includeZero=true}}
-imageGCLowThresholdPercent: {{default "80" settings.kubernetes.image-gc-low-threshold-percent}}
-{{/if}}
+{{validate_image_gc_threshold_percent settings.kubernetes.image-gc-high-threshold-percent settings.kubernetes.image-gc-low-threshold-percent}}
 {{#if settings.kubernetes.provider-id}}
 providerID: {{settings.kubernetes.provider-id}}
 {{/if}}

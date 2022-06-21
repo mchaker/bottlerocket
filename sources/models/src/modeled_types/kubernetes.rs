@@ -1048,7 +1048,6 @@ impl TryFrom<&str> for ImageGCHighThresholdPercent {
         })
     }
 }
-string_impls_for!(ImageGCHighThresholdPercent, "ImageGCHighThresholdPercent");
 
 #[cfg(test)]
 mod test_image_gc_high_threshold_percent {
@@ -1126,7 +1125,6 @@ impl TryFrom<&str> for ImageGCLowThresholdPercent {
         })
     }
 }
-string_impls_for!(ImageGCLowThresholdPercent, "ImageGCLowThresholdPercent");
 
 #[cfg(test)]
 mod test_image_gc_low_threshold_percent {
