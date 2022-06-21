@@ -10,6 +10,7 @@ use snafu::{OptionExt, ResultExt};
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::fmt::format;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use url::Url;
 
@@ -1197,7 +1198,6 @@ pub fn validate_image_gc_threshold_percent(
     trace!("Number of params: {}", helper.params().len());
     check_param_count(helper, template_name, 2)?;
 
-    /*
     // Get the GC Threshold Percentage values out of the template.
     // Get the GC High Threshold Percent from the template
     let image_gc_high_threshold_percent_param = get_param(helper, 0)?;
@@ -1226,7 +1226,6 @@ pub fn validate_image_gc_threshold_percent(
         "imageGCLowThresholdPercent value from template: {}",
         image_gc_low_threshold_percent,
     );
-    */
 
     // Keep track if the user supplied a value or not
     /*
@@ -1330,7 +1329,7 @@ pub fn validate_image_gc_threshold_percent(
     out.write(
         format!(
             "imageGCHighThresholdPercent: {}",
-            "85" //image_gc_high_threshold_percent
+            format!("{}\n", "86") //image_gc_high_threshold_percent
         )
         .as_str(),
     )
@@ -1340,7 +1339,7 @@ pub fn validate_image_gc_threshold_percent(
     out.write(
         format!(
             "imageGCLowThresholdPercent: {}",
-            "80" //image_gc_low_threshold_percent
+            format!("{}", "81") //image_gc_low_threshold_percent
         )
         .as_str(),
     )

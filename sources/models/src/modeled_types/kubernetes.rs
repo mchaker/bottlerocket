@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use x509_parser::nom::ParseTo;
 // Just need serde's Error in scope to get its trait methods
 use super::error;
 use serde::de::Error as _;
@@ -1048,6 +1049,7 @@ impl TryFrom<&str> for ImageGCHighThresholdPercent {
         })
     }
 }
+string_impls_for!(ImageGCHighThresholdPercent, "ImageGCHighThresholdPercent");
 
 #[cfg(test)]
 mod test_image_gc_high_threshold_percent {
@@ -1091,6 +1093,8 @@ pub struct ImageGCLowThresholdPercent {
     inner: i32,
 }
 
+pub static IMAGE_GC_THRESHOLD_MAX = 100;
+
 impl TryFrom<&str> for ImageGCLowThresholdPercent {
     type Error = error::Error;
 
@@ -1125,6 +1129,7 @@ impl TryFrom<&str> for ImageGCLowThresholdPercent {
         })
     }
 }
+string_impls_for!(ImageGCLowThresholdPercent, "ImageGCLowThresholdPercent");
 
 #[cfg(test)]
 mod test_image_gc_low_threshold_percent {
