@@ -1228,7 +1228,7 @@ pub fn image_gc_threshold_percent(
             })?
     };
     info!(
-        "imageGCHighThresholdPercent value from template: {}",
+        "Attempting to set imageGCHighThresholdPercent value: {}",
         image_gc_high_threshold_percent,
     );
 
@@ -1253,7 +1253,7 @@ pub fn image_gc_threshold_percent(
             })?
     };
     info!(
-        "imageGCLowThresholdPercent value from template: {}",
+        "Attempting to set imageGCLowThresholdPercent value: {}",
         image_gc_low_threshold_percent,
     );
 
@@ -1318,9 +1318,9 @@ pub fn image_gc_threshold_percent(
     }
 
     // Check if we are printing more than one setting. If we are only printing
-    // one setting, don't add a newline in our output (there is one added by)
+    // one setting, don't add a newline in our output (there is one added by
     // the template rendering engine automatically at the end of this/before
-    // the next rendered value
+    // the next rendered value)
     let image_gc_high_threshold_newline: &str = if image_gc_low_threshold_was_null {
         ""
     } else {
