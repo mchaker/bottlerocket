@@ -254,6 +254,12 @@ mod error {
             target: String,
         },
 
+        #[snafu(display("Failed to parse {} to integer: {}", what, source))]
+        ParseInt {
+            what: String,
+            source: std::num::ParseIntError,
+        },
+
         #[snafu(display("Failed to convert usize {} to u16: {}", number, source))]
         ConvertUsizeToU16 {
             number: usize,
@@ -1308,13 +1314,21 @@ pub fn image_gc_threshold_percent(
     );
 
     // Validate that imageGCHighThresholdPercent is greater than imageGCLowThresholdPercent
-    if image_gc_high_threshold_percent.parse::<i32>().unwrap()
-        <= image_gc_low_threshold_percent.parse::<i32>().unwrap()
+    if image_gc_high_threshold_percent
+        .parse::<i32>()
+        .context(error::ParseIntSnafu {
+            what: "imageGCHighThresholdPercent",
+        })?
+        <= image_gc_low_threshold_percent
+            .parse::<i32>()
+            .context(error::ParseIntSnafu {
+                what: "imageGCLowThresholdPercent",
+            })?
     {
         if (!image_gc_high_threshold_was_null) && (!image_gc_low_threshold_was_null) {
             // Both values were set but broke the High > Low rule
-            info!(
-                "Failed to set imageGCLowThresholdPercent and imageGCHighThresholdPercent. imageGCLowThresholdPercent (attempted to set {}) must be less than imageGCHighThresholdPercent (attempted to set {}).",
+            error!(
+                "Skipping updating imageGCHighThresholdPercent and imageGCLowThresholdPercent. Failed to set imageGCLowThresholdPercent and imageGCHighThresholdPercent. imageGCLowThresholdPercent (attempted to set {}) must be less than imageGCHighThresholdPercent (attempted to set {}).",
                 image_gc_low_threshold_percent,
                 image_gc_high_threshold_percent,
             );
@@ -1328,8 +1342,8 @@ pub fn image_gc_threshold_percent(
 
         // Only the High threshold was set and it was lower than the default Low value
         if image_gc_low_threshold_was_null {
-            info!(
-                "Failed to set imageGCHighThresholdPercent ({}): must be greater than imageGCLowThresholdPercent ({})",
+            error!(
+                "Skipping updating imageGCHighThresholdPercent. Failed to set imageGCHighThresholdPercent ({}): must be greater than imageGCLowThresholdPercent ({})",
                 image_gc_high_threshold_percent,
                 image_gc_low_threshold_percent,
             );
@@ -1344,8 +1358,8 @@ pub fn image_gc_threshold_percent(
 
         // Only the Low threshold was set and it was higher than the default High value
         if image_gc_high_threshold_was_null {
-            info!(
-                "Failed to set imageGCLowThresholdPercent ({}): must be less than imageGCHighThresholdPercent ({})",
+            error!(
+                "Skipping updating imageGCLowThresholdPercent. Failed to set imageGCLowThresholdPercent ({}): must be less than imageGCHighThresholdPercent ({})",
                 image_gc_low_threshold_percent,
                 image_gc_high_threshold_percent,
             );
@@ -1363,7 +1377,7 @@ pub fn image_gc_threshold_percent(
     // may need to write more than one setting from a single helper function
     // call.
     let image_gc_high_threshold_newline: &str = if image_gc_low_threshold_was_null {
-        " \n"
+        ""
     } else {
         "\n"
     };
