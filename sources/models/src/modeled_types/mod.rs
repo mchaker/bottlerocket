@@ -129,10 +129,10 @@ pub mod error {
             source: serde_plain::Error,
         },
 
-        #[snafu(display("Invalid imageGCHighThresholdPercent '{}'", input))]
+        #[snafu(display("Invalid imageGCHighThresholdPercent '{}': {}", input, msg))]
         InvalidImageGCHighThresholdPercent { input: String, msg: String },
 
-        #[snafu(display("Invalid imageGCLowThresholdPercent '{}'", input))]
+        #[snafu(display("Invalid imageGCLowThresholdPercent '{}': {}", input, msg))]
         InvalidImageGCLowThresholdPercent { input: String, msg: String },
     }
 }

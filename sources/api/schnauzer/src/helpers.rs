@@ -107,6 +107,9 @@ const KUBE_RESERVE_ADDITIONAL: f32 = 2.5;
 const IPV4_LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 const IPV6_LOCALHOST: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
 
+const IMAGE_GC_HIGH_THRESHOLD_DEFAULT: &str = "85";
+const IMAGE_GC_LOW_THRESHOLD_DEFAULT: &str = "80";
+
 /// Potential errors during helper execution
 mod error {
     use handlebars::RenderError;
@@ -1190,35 +1193,85 @@ pub fn image_gc_threshold_percent(
     out: &mut dyn Output,
 ) -> Result<(), RenderError> {
     // To give context to our errors, get the template name, if available.
-    trace!("Starting image_gc_threshold_percent helper");
+    info!("Starting image_gc_threshold_percent helper");
     let template_name = template_name(renderctx);
-    trace!("Template name: {}", &template_name);
+    info!("Template name: {}", &template_name);
 
     // Check number of parameters, must be exactly two (high and low GC threshold percentages)
-    trace!("Number of params: {}", helper.params().len());
-    check_param_count(helper, template_name, 1)?;
-
-    let test_val_param = get_param(helper, 0)?;
-    let test_val = test_val_param
-        .as_str()
-        .with_context(|| error::InvalidTemplateValueSnafu {
-            expected: "string",
-            value: test_val_param.to_owned(),
-            template: template_name.to_owned(),
-        })?;
-    info!("test value param: {}", test_val);
+    info!("Number of params: {}", helper.params().len());
+    check_param_count(helper, template_name, 2)?;
 
     /*
+    info!("Going to get test value param");
+    let test_val_param = get_param(helper, 0)?;
+    info!("we got the parameter: {}", test_val_param);
+    info!("check if test param is null: {}", test_val_param.is_null());
+    info!(
+        "check if test param is array: {}",
+        test_val_param.is_array()
+    );
+    info!(
+        "check if test param is boolean: {}",
+        test_val_param.is_boolean()
+    );
+    info!("check if test param is f64: {}", test_val_param.is_f64());
+    info!("check if test param is i64: {}", test_val_param.is_i64());
+    info!(
+        "check if test param is number: {}",
+        test_val_param.is_number()
+    );
+    info!(
+        "check if test param is object: {}",
+        test_val_param.is_object()
+    );
+    info!(
+        "check if test param is string: {}",
+        test_val_param.is_string()
+    );
+    info!("check if test param is u64: {}", test_val_param.is_u64());
+    */
+
+    /*
+    let test_val_param_was_null: bool = test_val_param.is_null();
+    let test_val: &str = if test_val_param_was_null {
+        IMAGE_GC_HIGH_THRESHOLD_DEFAULT
+    } else {
+        test_val_param
+            .as_str()
+            .with_context(|| error::InvalidTemplateValueSnafu {
+                expected: "string",
+                value: test_val_param.to_owned(),
+                template: template_name.to_owned(),
+            })?
+    };
+    info!("test value param: {}", test_val);
+    */
+
     // Get the GC Threshold Percentage values out of the template.
     // Get the GC High Threshold Percent from the template
     let image_gc_high_threshold_percent_param = get_param(helper, 0)?;
-    let mut image_gc_high_threshold_percent = image_gc_high_threshold_percent_param
-        .as_str()
-        .with_context(|| error::InvalidTemplateValueSnafu {
-            expected: "string",
-            value: image_gc_high_threshold_percent_param.to_owned(),
-            template: template_name.to_owned(),
-        })?;
+    // Check if the GC High Threshold Percent was not provided by the user (e.g.
+    // when bottlerocket first boots, the setting is not explicitly given, but
+    // instead assumed to be the kubelet default)
+    let image_gc_high_threshold_was_null: bool = image_gc_high_threshold_percent_param.is_null();
+    /*
+    let image_gc_high_threshold_was_not_number: bool =
+        !image_gc_high_threshold_percent_param.is_number();
+    */
+
+    // If the GC High Threshold Percent was not provided by the user, fall back
+    // to the default value. Otherwise, use the provided value.
+    let image_gc_high_threshold_percent: &str = if image_gc_high_threshold_was_null {
+        IMAGE_GC_HIGH_THRESHOLD_DEFAULT
+    } else {
+        image_gc_high_threshold_percent_param
+            .as_str()
+            .with_context(|| error::InvalidTemplateValueSnafu {
+                expected: "string",
+                value: image_gc_high_threshold_percent_param.to_owned(),
+                template: template_name.to_owned(),
+            })?
+    };
     info!(
         "imageGCHighThresholdPercent value from template: {}",
         image_gc_high_threshold_percent,
@@ -1226,34 +1279,33 @@ pub fn image_gc_threshold_percent(
 
     // Get the GC Low Threshold Percent from the template
     let image_gc_low_threshold_percent_param = get_param(helper, 1)?;
-    let mut image_gc_low_threshold_percent = image_gc_low_threshold_percent_param
-        .as_str()
-        .with_context(|| error::InvalidTemplateValueSnafu {
-            expected: "string",
-            value: image_gc_low_threshold_percent_param.to_owned(),
-            template: template_name.to_owned(),
-        })?;
+    // Check if the GC Low Threshold Percent was not provided by the user (e.g.
+    // when bottlerocket first boots, the setting is not explicitly given, but
+    // instead assumed to be the kubelet default)
+    let image_gc_low_threshold_was_null: bool = image_gc_low_threshold_percent_param.is_null();
+    /*
+    // Final validation pass: make sure we can parse the
+    let image_gc_low_threshold_was_not_number: bool =
+        !image_gc_low_threshold_percent_param.is_number();
+    */
+
+    // If the GC Low Threshold Percent was not provided by the user, fall back
+    // to the default value. Otherwise, use the provided value.
+    let image_gc_low_threshold_percent: &str = if image_gc_low_threshold_was_null {
+        IMAGE_GC_LOW_THRESHOLD_DEFAULT
+    } else {
+        image_gc_low_threshold_percent_param
+            .as_str()
+            .with_context(|| error::InvalidTemplateValueSnafu {
+                expected: "string",
+                value: image_gc_low_threshold_percent_param.to_owned(),
+                template: template_name.to_owned(),
+            })?
+    };
     info!(
         "imageGCLowThresholdPercent value from template: {}",
         image_gc_low_threshold_percent,
     );
-    */
-
-    // Keep track if the user supplied a value or not
-    /*
-    let mut image_gc_high_threshold_was_null: bool = false;
-    let mut image_gc_low_threshold_was_null: bool = false;
-
-    if image_gc_high_threshold_percent.is_empty() {
-        // If the high threshold percent is not set, assume the default value.
-        image_gc_high_threshold_percent = "85";
-        image_gc_high_threshold_was_null = true;
-    }
-    if image_gc_low_threshold_percent.is_empty() {
-        // If the low threshold percent is not set, assume the default value.
-        image_gc_low_threshold_percent = "80";
-        image_gc_low_threshold_was_null = true;
-    }
 
     // Validate that imageGCHighThresholdPercent is greater than imageGCLowThresholdPercent
     if image_gc_high_threshold_percent.parse::<i32>().unwrap()
@@ -1261,7 +1313,7 @@ pub fn image_gc_threshold_percent(
     {
         if (!image_gc_high_threshold_was_null) && (!image_gc_low_threshold_was_null) {
             // Both values were set but broke the High > Low rule
-            trace!(
+            info!(
                 "Failed to set imageGCLowThresholdPercent and imageGCHighThresholdPercent. imageGCLowThresholdPercent (attempted to set {}) must be less than imageGCHighThresholdPercent (attempted to set {}).",
                 image_gc_low_threshold_percent,
                 image_gc_high_threshold_percent,
@@ -1276,7 +1328,7 @@ pub fn image_gc_threshold_percent(
 
         // Only the High threshold was set and it was lower than the default Low value
         if image_gc_low_threshold_was_null {
-            trace!(
+            info!(
                 "Failed to set imageGCHighThresholdPercent ({}): must be greater than imageGCLowThresholdPercent ({})",
                 image_gc_high_threshold_percent,
                 image_gc_low_threshold_percent,
@@ -1290,9 +1342,9 @@ pub fn image_gc_threshold_percent(
             ));
         }
 
-        // Only the Low value was set and it was higher than the default High value
+        // Only the Low threshold was set and it was higher than the default High value
         if image_gc_high_threshold_was_null {
-            trace!(
+            info!(
                 "Failed to set imageGCLowThresholdPercent ({}): must be less than imageGCHighThresholdPercent ({})",
                 image_gc_low_threshold_percent,
                 image_gc_high_threshold_percent,
@@ -1310,12 +1362,17 @@ pub fn image_gc_threshold_percent(
     // Write out the Image GC Threshold Percentage settings IN FULL since we
     // may need to write more than one setting from a single helper function
     // call.
+    let image_gc_high_threshold_newline: &str = if image_gc_low_threshold_was_null {
+        " \n"
+    } else {
+        "\n"
+    };
     if !(image_gc_high_threshold_was_null) {
-        trace!("Writing imageGCHighThresholdPercent",);
+        info!("Writing imageGCHighThresholdPercent",);
         out.write(
             format!(
-                "imageGCHighThresholdPercent: {}",
-                image_gc_high_threshold_percent
+                "imageGCHighThresholdPercent: {}{}",
+                image_gc_high_threshold_percent, image_gc_high_threshold_newline
             )
             .as_str(),
         )
@@ -1324,7 +1381,7 @@ pub fn image_gc_threshold_percent(
         })?;
     }
     if !(image_gc_low_threshold_was_null) {
-        trace!("Writing imageGCLowThresholdPercent",);
+        info!("Writing imageGCLowThresholdPercent",);
         out.write(
             format!(
                 "imageGCLowThresholdPercent: {}",
@@ -1336,12 +1393,15 @@ pub fn image_gc_threshold_percent(
             template: template_name.to_owned(),
         })?;
     }
-    */
 
-    out.write(format!("testValueParam: {}", test_val).as_str())
-        .context(error::TemplateWriteSnafu {
-            template: template_name.to_owned(),
-        })?;
+    /*
+    if !test_val_param_was_null {
+        out.write(format!("testValueParam: {}", test_val).as_str())
+            .context(error::TemplateWriteSnafu {
+                template: template_name.to_owned(),
+            })?;
+    }
+    */
 
     /*
     out.write(
