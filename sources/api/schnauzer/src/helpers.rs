@@ -1317,6 +1317,7 @@ pub fn image_gc_threshold_percent(
         }
     }
 
+    /*
     // Check if we are printing more than one setting. If we are only printing
     // one setting, don't add a newline in our output (there is one added by
     // the template rendering engine automatically at the end of this/before
@@ -1326,6 +1327,7 @@ pub fn image_gc_threshold_percent(
     } else {
         "\n"
     };
+    */
     // Write out the Image GC Threshold Percentage settings IN FULL since we
     // may need to write more than one setting from a single helper function
     // call.
@@ -1333,8 +1335,8 @@ pub fn image_gc_threshold_percent(
         info!("Writing imageGCHighThresholdPercent",);
         out.write(
             format!(
-                "imageGCHighThresholdPercent: {}{}",
-                image_gc_high_threshold_percent, image_gc_high_threshold_newline
+                "imageGCHighThresholdPercent: {}\n",
+                image_gc_high_threshold_percent,
             )
             .as_str(),
         )
@@ -1346,7 +1348,7 @@ pub fn image_gc_threshold_percent(
         info!("Writing imageGCLowThresholdPercent",);
         out.write(
             format!(
-                "imageGCLowThresholdPercent: {}",
+                "imageGCLowThresholdPercent: {}\n",
                 image_gc_low_threshold_percent
             )
             .as_str(),
