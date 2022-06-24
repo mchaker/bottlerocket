@@ -1217,6 +1217,10 @@ pub fn image_gc_threshold_percent(
     // If the GC High Threshold Percent was not provided by the user, fall back
     // to the default value. Otherwise, use the provided value.
     let image_gc_high_threshold_percent: &str = if image_gc_high_threshold_was_null {
+        info!(
+            "imageGCHighThresholdPercent not specified, falling back to kubelet default value ({})",
+            IMAGE_GC_HIGH_THRESHOLD_DEFAULT
+        );
         IMAGE_GC_HIGH_THRESHOLD_DEFAULT
     } else {
         image_gc_high_threshold_percent_param
@@ -1228,7 +1232,7 @@ pub fn image_gc_threshold_percent(
             })?
     };
     info!(
-        "Attempting to set imageGCHighThresholdPercent value: {}",
+        "Attempting to use imageGCHighThresholdPercent value: {}",
         image_gc_high_threshold_percent,
     );
 
@@ -1242,6 +1246,10 @@ pub fn image_gc_threshold_percent(
     // If the GC Low Threshold Percent was not provided by the user, fall back
     // to the default value. Otherwise, use the provided value.
     let image_gc_low_threshold_percent: &str = if image_gc_low_threshold_was_null {
+        info!(
+            "imageGCLowThresholdPercent not specified, falling back to kubelet default value ({})",
+            IMAGE_GC_LOW_THRESHOLD_DEFAULT
+        );
         IMAGE_GC_LOW_THRESHOLD_DEFAULT
     } else {
         image_gc_low_threshold_percent_param
@@ -1253,7 +1261,7 @@ pub fn image_gc_threshold_percent(
             })?
     };
     info!(
-        "Attempting to set imageGCLowThresholdPercent value: {}",
+        "Attempting to use imageGCLowThresholdPercent value: {}",
         image_gc_low_threshold_percent,
     );
 
@@ -1272,7 +1280,7 @@ pub fn image_gc_threshold_percent(
         if (!image_gc_high_threshold_was_null) && (!image_gc_low_threshold_was_null) {
             // Both values were set but broke the High > Low rule
             error!(
-                "Skipping updating imageGCHighThresholdPercent and imageGCLowThresholdPercent. Failed to set imageGCLowThresholdPercent and imageGCHighThresholdPercent. imageGCLowThresholdPercent (attempted to set {}) must be less than imageGCHighThresholdPercent (attempted to set {}).",
+                "Skipping updating imageGCHighThresholdPercent and imageGCLowThresholdPercent. Invalid value for imageGCLowThresholdPercent and imageGCHighThresholdPercent. imageGCLowThresholdPercent (attempted to set {}) must be less than imageGCHighThresholdPercent (attempted to set {}).",
                 image_gc_low_threshold_percent,
                 image_gc_high_threshold_percent,
             );
@@ -1287,7 +1295,7 @@ pub fn image_gc_threshold_percent(
         // Only the High threshold was set and it was lower than the default Low value
         if image_gc_low_threshold_was_null {
             error!(
-                "Skipping updating imageGCHighThresholdPercent. Failed to set imageGCHighThresholdPercent ({}): must be greater than imageGCLowThresholdPercent ({})",
+                "Skipping updating imageGCHighThresholdPercent. Invalid value for imageGCHighThresholdPercent ({}): must be greater than imageGCLowThresholdPercent ({})",
                 image_gc_high_threshold_percent,
                 image_gc_low_threshold_percent,
             );
@@ -1303,7 +1311,7 @@ pub fn image_gc_threshold_percent(
         // Only the Low threshold was set and it was higher than the default High value
         if image_gc_high_threshold_was_null {
             error!(
-                "Skipping updating imageGCLowThresholdPercent. Failed to set imageGCLowThresholdPercent ({}): must be less than imageGCHighThresholdPercent ({})",
+                "Skipping updating imageGCLowThresholdPercent. Invalid value for imageGCLowThresholdPercent ({}): must be less than imageGCHighThresholdPercent ({})",
                 image_gc_low_threshold_percent,
                 image_gc_high_threshold_percent,
             );
@@ -1317,17 +1325,6 @@ pub fn image_gc_threshold_percent(
         }
     }
 
-    /*
-    // Check if we are printing more than one setting. If we are only printing
-    // one setting, don't add a newline in our output (there is one added by
-    // the template rendering engine automatically at the end of this/before
-    // the next rendered value)
-    let image_gc_high_threshold_newline: &str = if image_gc_low_threshold_was_null {
-        ""
-    } else {
-        "\n"
-    };
-    */
     // Write out the Image GC Threshold Percentage settings IN FULL since we
     // may need to write more than one setting from a single helper function
     // call.

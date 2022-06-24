@@ -1025,21 +1025,21 @@ impl TryFrom<&str> for ImageGCHighThresholdPercent {
     fn try_from(input: &str) -> Result<Self, Self::Error> {
         ensure!(
             !input.is_empty(),
-            error::InvalidImageGCLowThresholdPercentSnafu {
+            error::InvalidImageGCHighThresholdPercentSnafu {
                 input,
                 msg: "must not be empty",
             }
         );
         ensure!(
-            input.parse::<i32>().unwrap().ge(&IMAGE_GC_THRESHOLD_MIN),
-            error::InvalidImageGCLowThresholdPercentSnafu {
+            i32::ge(&input.parse::<i32>().unwrap(), &IMAGE_GC_THRESHOLD_MIN),
+            error::InvalidImageGCHighThresholdPercentSnafu {
                 input,
                 msg: "must be greater than or equal to 0"
             }
         );
         ensure!(
-            input.parse::<i32>().unwrap().le(&IMAGE_GC_THRESHOLD_MAX),
-            error::InvalidImageGCLowThresholdPercentSnafu {
+            i32::le(&input.parse::<i32>().unwrap(), &IMAGE_GC_THRESHOLD_MAX),
+            error::InvalidImageGCHighThresholdPercentSnafu {
                 input,
                 msg: "must be less than or equal to 100"
             }
@@ -1106,14 +1106,14 @@ impl TryFrom<&str> for ImageGCLowThresholdPercent {
             }
         );
         ensure!(
-            input.parse::<i32>().unwrap().ge(&IMAGE_GC_THRESHOLD_MIN),
+            i32::ge(&input.parse::<i32>().unwrap(), &IMAGE_GC_THRESHOLD_MIN),
             error::InvalidImageGCLowThresholdPercentSnafu {
                 input,
                 msg: "must be greater than or equal to 0"
             }
         );
         ensure!(
-            input.parse::<i32>().unwrap().le(&IMAGE_GC_THRESHOLD_MAX),
+            i32::le(&input.parse::<i32>().unwrap(), &IMAGE_GC_THRESHOLD_MAX),
             error::InvalidImageGCLowThresholdPercentSnafu {
                 input,
                 msg: "must be less than or equal to 100"
