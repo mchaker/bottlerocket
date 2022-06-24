@@ -1197,16 +1197,16 @@ pub fn image_gc_threshold_percent(
     renderctx: &mut RenderContext<'_, '_>,
     out: &mut dyn Output,
 ) -> Result<(), RenderError> {
-    // To give context to our errors, get the template name, if available.
-    info!("Starting image_gc_threshold_percent helper");
+    // To give context to our errors, get the template name (e.g. what file we are rendering), if available.
+    trace!("Starting image_gc_threshold_percent helper");
     let template_name = template_name(renderctx);
-    info!("Template name: {}", &template_name);
+    trace!("Template name: {}", &template_name);
 
     // Check number of parameters, must be exactly two (high and low GC threshold percentages)
-    info!("Number of params: {}", helper.params().len());
+    trace!("Number of params: {}", helper.params().len());
     check_param_count(helper, template_name, 2)?;
 
-    // Get the GC Threshold Percentage values out of the template.
+    // ----- Get the GC Threshold Percentage values out of the template.
     // Get the GC High Threshold Percent from the template
     let image_gc_high_threshold_percent_param = get_param(helper, 0)?;
     // Check if the GC High Threshold Percent was not provided by the user (e.g.
@@ -1217,7 +1217,7 @@ pub fn image_gc_threshold_percent(
     // If the GC High Threshold Percent was not provided by the user, fall back
     // to the default value. Otherwise, use the provided value.
     let image_gc_high_threshold_percent: &str = if image_gc_high_threshold_was_null {
-        info!(
+        trace!(
             "imageGCHighThresholdPercent not specified, falling back to kubelet default value ({})",
             IMAGE_GC_HIGH_THRESHOLD_DEFAULT
         );
@@ -1231,7 +1231,7 @@ pub fn image_gc_threshold_percent(
                 template: template_name.to_owned(),
             })?
     };
-    info!(
+    trace!(
         "Attempting to use imageGCHighThresholdPercent value: {}",
         image_gc_high_threshold_percent,
     );
@@ -1246,7 +1246,7 @@ pub fn image_gc_threshold_percent(
     // If the GC Low Threshold Percent was not provided by the user, fall back
     // to the default value. Otherwise, use the provided value.
     let image_gc_low_threshold_percent: &str = if image_gc_low_threshold_was_null {
-        info!(
+        trace!(
             "imageGCLowThresholdPercent not specified, falling back to kubelet default value ({})",
             IMAGE_GC_LOW_THRESHOLD_DEFAULT
         );
@@ -1260,7 +1260,7 @@ pub fn image_gc_threshold_percent(
                 template: template_name.to_owned(),
             })?
     };
-    info!(
+    trace!(
         "Attempting to use imageGCLowThresholdPercent value: {}",
         image_gc_low_threshold_percent,
     );
@@ -1329,7 +1329,7 @@ pub fn image_gc_threshold_percent(
     // may need to write more than one setting from a single helper function
     // call.
     if !(image_gc_high_threshold_was_null) {
-        info!("Writing imageGCHighThresholdPercent",);
+        trace!("Writing imageGCHighThresholdPercent",);
         out.write(
             format!(
                 "imageGCHighThresholdPercent: {}\n",
@@ -1342,7 +1342,7 @@ pub fn image_gc_threshold_percent(
         })?;
     }
     if !(image_gc_low_threshold_was_null) {
-        info!("Writing imageGCLowThresholdPercent",);
+        trace!("Writing imageGCLowThresholdPercent",);
         out.write(
             format!(
                 "imageGCLowThresholdPercent: {}\n",

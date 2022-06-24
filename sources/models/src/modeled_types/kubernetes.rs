@@ -1016,6 +1016,10 @@ mod test_topology_manager_policy {
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ImageGCHighThresholdPercent {
+    // All settings are brought in as Strings.
+    // Important note: custom types need to have `string_impls_for!()` after
+    // their TryFrom<&str> implementation. (this requires that the inner type
+    // of a custom Kubernetes settings type is a String)
     inner: String,
 }
 
@@ -1023,6 +1027,7 @@ impl TryFrom<&str> for ImageGCHighThresholdPercent {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
+        // apiserver validation 1: reject empty values
         ensure!(
             !input.is_empty(),
             error::InvalidImageGCHighThresholdPercentSnafu {
@@ -1030,6 +1035,7 @@ impl TryFrom<&str> for ImageGCHighThresholdPercent {
                 msg: "must not be empty",
             }
         );
+        // apiserver validation 2: reject values that are too low to be a percentage
         ensure!(
             i32::ge(&input.parse::<i32>().unwrap(), &IMAGE_GC_THRESHOLD_MIN),
             error::InvalidImageGCHighThresholdPercentSnafu {
@@ -1037,6 +1043,7 @@ impl TryFrom<&str> for ImageGCHighThresholdPercent {
                 msg: "must be greater than or equal to 0"
             }
         );
+        // apiserver validation 3: reject values that are too high to be a percentage
         ensure!(
             i32::le(&input.parse::<i32>().unwrap(), &IMAGE_GC_THRESHOLD_MAX),
             error::InvalidImageGCHighThresholdPercentSnafu {
@@ -1045,11 +1052,15 @@ impl TryFrom<&str> for ImageGCHighThresholdPercent {
             }
         );
 
+        // When everything goes well, store the input value into the custom type
         Ok(ImageGCHighThresholdPercent {
             inner: input.to_owned(),
         })
     }
 }
+// The following macro is necessary for Kubernetes Settings custom types.
+// I learned this the hard way when trying to make ImageGCHighThresholdPercent's
+// inner value an i32 instead.
 string_impls_for!(ImageGCHighThresholdPercent, "ImageGCHighThresholdPercent");
 
 #[cfg(test)]
@@ -1057,6 +1068,7 @@ mod test_image_gc_high_threshold_percent {
     use super::ImageGCHighThresholdPercent;
     use std::convert::TryFrom;
 
+    // test 1: good values should succeed
     #[test]
     fn image_gc_high_threshold_percent_between_0_and_100_inclusive() {
         for ok in &["0", "1", "99", "100"] {
@@ -1064,17 +1076,19 @@ mod test_image_gc_high_threshold_percent {
         }
     }
 
+    // test 2: values too low should return Errors
     #[test]
     fn image_gc_high_threshold_percent_less_than_0_fails() {
         for err in &["-1"] {
-            ImageGCHighThresholdPercent::try_from(*err).unwrap();
+            ImageGCHighThresholdPercent::try_from(*err).unwrap_err();
         }
     }
 
+    // test 3: values too high should return Errors
     #[test]
     fn image_gc_high_threshold_percent_greater_than_100_fails() {
         for err in &["101"] {
-            ImageGCHighThresholdPercent::try_from(*err).unwrap();
+            ImageGCHighThresholdPercent::try_from(*err).unwrap_err();
         }
     }
 }
@@ -1091,6 +1105,10 @@ mod test_image_gc_high_threshold_percent {
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ImageGCLowThresholdPercent {
+    // All settings are brought in as Strings.
+    // Important note: custom types need to have `string_impls_for!()` after
+    // their TryFrom<&str> implementation. (this requires that the inner type
+    // of a custom Kubernetes settings type is a String)
     inner: String,
 }
 
@@ -1098,6 +1116,7 @@ impl TryFrom<&str> for ImageGCLowThresholdPercent {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
+        // apiserver validation 1: reject empty values
         ensure!(
             !input.is_empty(),
             error::InvalidImageGCLowThresholdPercentSnafu {
@@ -1105,6 +1124,7 @@ impl TryFrom<&str> for ImageGCLowThresholdPercent {
                 msg: "must not be empty",
             }
         );
+        // apiserver validation 2: reject values that are too low to be a percentage
         ensure!(
             i32::ge(&input.parse::<i32>().unwrap(), &IMAGE_GC_THRESHOLD_MIN),
             error::InvalidImageGCLowThresholdPercentSnafu {
@@ -1112,6 +1132,7 @@ impl TryFrom<&str> for ImageGCLowThresholdPercent {
                 msg: "must be greater than or equal to 0"
             }
         );
+        // apiserver validation 3: reject values that are too high to be a percentage
         ensure!(
             i32::le(&input.parse::<i32>().unwrap(), &IMAGE_GC_THRESHOLD_MAX),
             error::InvalidImageGCLowThresholdPercentSnafu {
@@ -1120,11 +1141,15 @@ impl TryFrom<&str> for ImageGCLowThresholdPercent {
             }
         );
 
+        // When everything goes well, store the input value into the custom type
         Ok(ImageGCLowThresholdPercent {
             inner: input.to_owned(),
         })
     }
 }
+// The following macro is necessary for Kubernetes Settings custom types.
+// I learned this the hard way when trying to make ImageGCHighThresholdPercent's
+// inner value an i32 instead.
 string_impls_for!(ImageGCLowThresholdPercent, "ImageGCLowThresholdPercent");
 
 #[cfg(test)]
@@ -1132,6 +1157,7 @@ mod test_image_gc_low_threshold_percent {
     use super::ImageGCLowThresholdPercent;
     use std::convert::TryFrom;
 
+    // test 1: good values should succeed
     #[test]
     fn image_gc_low_threshold_percent_between_0_and_100_inclusive() {
         for ok in &["0", "1", "99", "100"] {
@@ -1139,17 +1165,19 @@ mod test_image_gc_low_threshold_percent {
         }
     }
 
+    // test 2: values too low should return Errors
     #[test]
     fn image_gc_low_threshold_percent_less_than_0_fails() {
         for err in &["-1"] {
-            ImageGCLowThresholdPercent::try_from(*err).unwrap();
+            ImageGCLowThresholdPercent::try_from(*err).unwrap_err();
         }
     }
 
+    // test 3: values too high should return Errors
     #[test]
     fn image_gc_low_threshold_percent_greater_than_100_fails() {
         for err in &["101"] {
-            ImageGCLowThresholdPercent::try_from(*err).unwrap();
+            ImageGCLowThresholdPercent::try_from(*err).unwrap_err();
         }
     }
 }
