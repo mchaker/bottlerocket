@@ -5,12 +5,17 @@
 use dns_lookup::lookup_host;
 use handlebars::{Context, Handlebars, Helper, Output, RenderContext, RenderError};
 use lazy_static::lazy_static;
+use model::OciDefaults;
 use serde_json::value::Value;
 use snafu::{OptionExt, ResultExt};
+use std::any::{type_name, Any};
 use std::borrow::Borrow;
+use std::collections::hash_map::Keys;
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::fmt::format;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::vec;
 use url::Url;
 
 lazy_static! {
@@ -144,6 +149,64 @@ const KUBE_RESERVE_ADDITIONAL: f32 = 2.5;
 
 const IPV4_LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 const IPV6_LOCALHOST: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
+
+lazy_static! {
+    /// A map to tell us which internal Linux process capability maps to which API setting name
+    static ref PROC_CAPABILITY_SETTING_MAP: HashMap<&'static str, &'static str> = {
+        let mut m = HashMap::new();
+        m.insert("audit-control", "CAP_AUDIT_CONTROL");
+        m.insert("audit-read", "CAP_AUDIT_READ");
+        m.insert("audit-write", "CAP_AUDIT_WRITE");
+        m.insert("block-suspend", "CAP_BLOCK_SUSPEND");
+        m.insert("bpf", "CAP_BPF");
+        m.insert("checkpoint-restore", "CAP_CHECKPOINT_RESTORE");
+        m.insert("chown", "CAP_CHOWN");
+        m.insert("dac-override", "CAP_DAC_OVERRIDE");
+        m.insert("dac-read-search", "CAP_DAC_READ_SEARCH");
+        m.insert("fowner", "CAP_FOWNER");
+        m.insert("fsetid", "CAP_FSETID");
+        m.insert("ipc-lock", "CAP_IPC_LOCK");
+        m.insert("ipc-owner", "CAP_IPC_OWNER");
+        m.insert("kill", "CAP_KILL");
+        m.insert("lease", "CAP_LEASE");
+        m.insert("linux-immutable", "CAP_LINUX_IMMUTABLE");
+        m.insert("mac-admin", "CAP_MAC_ADMIN");
+        m.insert("mac-override", "CAP_MAC_OVERRIDE");
+        m.insert("mknod", "CAP_MKNOD");
+        m.insert("net-admin", "CAP_NET_ADMIN");
+        m.insert("net-bind-service", "CAP_NET_BIND_SERVICE");
+        m.insert("net-broadcast", "CAP_NET_BROADCAST");
+        m.insert("net-raw", "CAP_NET_RAW");
+        m.insert("perfmon", "CAP_PERFMON");
+        m.insert("setgid", "CAP_SETGID");
+        m.insert("setfcap", "CAP_SETFCAP");
+        m.insert("setpcap", "CAP_SETPCAP");
+        m.insert("setuid", "CAP_SETUID");
+        m.insert("sys-admin", "CAP_SYS_ADMIN");
+        m.insert("sys-boot", "CAP_SYS_BOOT");
+        m.insert("sys-chroot", "CAP_SYS_CHROOT");
+        m.insert("sys-module", "CAP_SYS_MODULE");
+        m.insert("sys-nice", "CAP_SYS_NICE");
+        m.insert("sys-pacct", "CAP_SYS_PACCT");
+        m.insert("sys-ptrace", "CAP_SYS_PTRACE");
+        m.insert("sys-rawio", "CAP_SYS_RAWIO");
+        m.insert("sys-resource", "CAP_SYS_RESOURCE");
+        m.insert("sys-time", "CAP_SYS_TIME");
+        m.insert("sys-tty-config", "CAP_SYS_TTY_CONFIG");
+        m.insert("syslog", "CAP_SYSLOG");
+        m.insert("wake-alarm", "CAP_WAKE_ALARM");
+        m
+    };
+}
+
+lazy_static! {
+    /// A map to tell us which internal Linux resource limit maps to which API setting name
+    static ref RLIMIT_SETTING_MAP: HashMap<&'static str, &'static str> = {
+        let mut m = HashMap::new();
+        m.insert("max-open-files", "RLIMIT_NOFILE");
+        m
+    };
+}
 
 /// Potential errors during helper execution
 mod error {
@@ -1297,6 +1360,130 @@ pub fn etc_hosts_entries(
         .context(error::TemplateWriteSnafu {
             template: template_name.to_owned(),
         })?;
+
+    Ok(())
+}
+
+/// This helper writes out the default OCI runtime spec.
+///
+/// Default settings are specified in the following files:
+/// * sources/models/shared-defaults/oci-resource-limits.toml
+/// * sources/models/shared-defaults/oci-capabilities.toml
+
+pub fn oci_defaults(
+    helper: &Helper<'_, '_>,
+    _: &Handlebars,
+    _: &Context,
+    renderctx: &mut RenderContext<'_, '_>,
+    out: &mut dyn Output,
+) -> Result<(), RenderError> {
+    // To give context to our errors, get the template name (e.g. what file we are rendering), if available.
+    info!("Starting oci_defaults helper");
+    let template_name = template_name(renderctx);
+    info!("Template name: {}", &template_name);
+
+    // Check number of parameters, must be exactly two (OCI spec section to render and settings values for the section)
+    info!("Number of params: {}", helper.params().len());
+    check_param_count(helper, template_name, 2)?;
+    info!("params: {:?}", helper.params());
+
+    // Validate the values given to the template
+    info!("Making vec of supported oci spec sections");
+    let supported_oci_spec_sections = vec!["capabilities", "resource-limits"];
+    info!("Getting the desired OCI spec section to render from first param");
+    let oci_spec_section = get_param(helper, 0)?;
+    let oci_spec_section_was_null: bool = oci_spec_section.is_null();
+    info!(
+        "OCI Spec section to render was null? {}",
+        oci_spec_section_was_null
+    );
+
+    info!(
+        "Matching whether the desired OCI spec section is supported ({})",
+        oci_spec_section
+            .as_str()
+            .with_context(|| error::InvalidTemplateValueSnafu {
+                expected: "string",
+                value: oci_spec_section.to_owned(),
+                template: template_name.to_owned(),
+            })?
+    );
+    let good_oci_spec_section = match oci_spec_section {
+        Value::String(oci_spec_section)
+            if (supported_oci_spec_sections.contains(&oci_spec_section.as_str())) =>
+        {
+            oci_spec_section.as_str()
+        }
+        &handlebars::JsonValue::String(_)
+        | Value::Null
+        | Value::Bool(_)
+        | Value::Number(_)
+        | Value::Array(_)
+        | Value::Object(_) => {
+            info!(
+                "Error condition hit! Bad path taken: oci spec section type is {:?}",
+                oci_spec_section.type_id()
+            );
+            return Err(RenderError::from(
+                error::TemplateHelperError::InvalidTemplateValue {
+                    expected: "one of: \"capabilities\", \"resource-limits\"",
+                    value: oci_spec_section.to_owned(),
+                    template: template_name.to_owned(),
+                },
+            ));
+        }
+    };
+
+    info!("Getting the desired OCI spec section SETTING VALUES to render from second param");
+    let oci_spec_section_values = get_param(helper, 1)?;
+    // deserialize OCI defaults settings blob
+    // do a match on what i want to write
+    info!("OCI spec values: {}", oci_spec_section_values);
+    let something: OciDefaults = serde_json::from_value(oci_spec_section_values.clone())?;
+    info!("something: {:?}", something);
+    info!("OCI spec capabilities: ----");
+    for capability in something.capabilities.iter() {
+        info!("capability: {:?}", capability.keys());
+        // for cap in capability {
+        //     info!("{}", cap); // implement IntoIterator for either the capabilities struct or something else? probably the capabilities struct
+        // }
+    }
+
+    // Generate the requested valid OCI spec section
+    let result_lines = match good_oci_spec_section {
+        "capabilities" => {
+            "capabilities_go_here
+        capabilities_go_here
+        capabilities_go_here"
+        }
+        "resource-limits" => match oci_spec_section_values.get("resource-limits") {
+            None => "No resource limit found",
+            Some(resource_limit) => {
+                info!("{}", resource_limit);
+                if let Some(resource_limit_obj) = resource_limit.as_object() {
+                    info!("{:?}", resource_limit_obj.get("max-open-files"));
+                    info!("{:?}", resource_limit_obj);
+                    "resource limit found"
+                } else {
+                    "no resource limit found"
+                }
+            }
+        },
+        // for resource_limit in oci_spec_section_values.get("resource-limits") {
+        //     let resource_limit_lines = match RLIMIT_SETTING_MAP
+        //         .borrow()
+        //         .get(resource_limit.as_str().borrow())
+        //     {
+        //         _ => "s",
+        //     };
+        // }
+        _ => "x",
+    };
+
+    // Write out the final values to the configuration file
+    out.write(result_lines).context(error::TemplateWriteSnafu {
+        template: template_name.to_owned(),
+    })?;
 
     Ok(())
 }
