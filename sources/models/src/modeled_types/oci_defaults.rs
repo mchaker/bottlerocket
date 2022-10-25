@@ -138,11 +138,11 @@ mod test_image_gc_high_threshold_percent {
 /// https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct OciDefaultsResourceLimits {
+pub struct OciDefaultsResourceLimit {
     inner: String,
 }
 
-impl TryFrom<&str> for OciDefaultsResourceLimits {
+impl TryFrom<&str> for OciDefaultsResourceLimit {
     type Error = error::Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
@@ -158,12 +158,12 @@ impl TryFrom<&str> for OciDefaultsResourceLimits {
             }
         );
 
-        Ok(OciDefaultsResourceLimits {
+        Ok(OciDefaultsResourceLimit {
             inner: input.to_owned(),
         })
     }
 }
-string_impls_for!(OciDefaultsResourceLimits, "OciDefaultsResourceLimits");
+string_impls_for!(OciDefaultsResourceLimit, "OciDefaultsResourceLimit");
 
 #[cfg(test)]
 mod test_image_gc_low_threshold_percent {

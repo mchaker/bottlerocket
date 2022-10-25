@@ -257,10 +257,8 @@ macro_rules! string_impls_for {
 // Must be after macro definition
 mod ecs;
 mod kubernetes;
-mod oci_defaults;
 mod shared;
 
 pub use ecs::*;
 pub use kubernetes::*;
-pub use oci_defaults::*;
 pub use shared::*;

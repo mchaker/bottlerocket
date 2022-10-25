@@ -13,7 +13,7 @@
 {{/if}}
 {{#if settings.oci-defaults.resource-limits}}
         "rlimits": [
-            {{oci_defaults "resource-limits" settings.oci-defaults}}
+{{oci_defaults "resource-limits" settings.oci-defaults}}
         ],
 {{/if}}
         "noNewPrivileges": true

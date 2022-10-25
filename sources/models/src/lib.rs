@@ -162,9 +162,8 @@ use crate::modeled_types::{
     KubernetesCloudProvider, KubernetesClusterDnsIp, KubernetesClusterName,
     KubernetesDurationValue, KubernetesEvictionHardKey, KubernetesLabelKey, KubernetesLabelValue,
     KubernetesQuantityValue, KubernetesReservedResourceKey, KubernetesTaintValue,
-    KubernetesThresholdValue, Lockdown, OciDefaultsCapability, PemCertificateString,
-    SingleLineString, SysctlKey, TopologyManagerPolicy, TopologyManagerScope, Url, ValidBase64,
-    ValidLinuxHostname,
+    KubernetesThresholdValue, Lockdown, PemCertificateString, SingleLineString, SysctlKey,
+    TopologyManagerPolicy, TopologyManagerScope, Url, ValidBase64, ValidLinuxHostname,
 };
 
 // Kubernetes static pod manifest settings
@@ -433,67 +432,13 @@ struct OciHooks {
 ///// OCI defaults
 #[model]
 struct OciDefaults {
-    capabilities: HashMap<OciDefaultsCapability, bool>,
-    resource_limits: OciDefaultsResourceLimits,
-}
-
-/*
-///// OCI defaults: Linux process capabilities
-#[model]
-struct OciDefaultsCapabilities {
-    audit_control: bool,
-    audit_read: bool,
-    audit_write: bool,
-    block_suspend: bool,
-    bpf: bool,
-    checkpoint_restore: bool,
-    chown: bool,
-    dac_override: bool,
-    dac_read_search: bool,
-    fowner: bool,
-    fsetid: bool,
-    ipc_lock: bool,
-    ipc_owner: bool,
-    kill: bool,
-    lease: bool,
-    linux_immutable: bool,
-    mac_admin: bool,
-    mac_override: bool,
-    mknod: bool,
-    net_admin: bool,
-    net_bind_service: bool,
-    net_broadcast: bool,
-    net_raw: bool,
-    perfmon: bool,
-    setgid: bool,
-    setfcap: bool,
-    setpcap: bool,
-    setuid: bool,
-    sys_admin: bool,
-    sys_boot: bool,
-    sys_chroot: bool,
-    sys_module: bool,
-    sys_nice: bool,
-    sys_pacct: bool,
-    sys_ptrace: bool,
-    sys_rawio: bool,
-    sys_resource: bool,
-    sys_time: bool,
-    sys_tty_config: bool,
-    syslog: bool,
-    wake_alarm: bool,
-}
-*/
-
-///// OCI defaults: Linux process capabilities
-#[model]
-struct OciDefaultsResourceLimits {
-    max_open_files: OciDefaultsResourceLimitsMaxOpenFiles,
+    capabilities: HashMap<Identifier, bool>,
+    resource_limits: HashMap<Identifier, OciDefaultsResourceLimit>,
 }
 
 ///// OCI defaults: Linux process capabilities
 #[model]
-struct OciDefaultsResourceLimitsMaxOpenFiles {
+struct OciDefaultsResourceLimit {
     hard_limit: i32,
     soft_limit: i32,
 }

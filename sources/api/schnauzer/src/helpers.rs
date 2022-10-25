@@ -208,6 +208,8 @@ lazy_static! {
     };
 }
 
+static SUPPORTED_OCI_SPEC_SECTIONS: [&'static str; 2] = ["capabilities", "resource-limits"];
+
 /// Potential errors during helper execution
 mod error {
     use handlebars::RenderError;
@@ -257,7 +259,7 @@ mod error {
             template
         ))]
         InvalidTemplateValue {
-            expected: &'static str,
+            expected: String,
             value: handlebars::JsonValue,
             template: String,
         },
@@ -484,7 +486,7 @@ pub fn join_map(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "fail-if-missing or no-fail-if-missing",
+                    expected: "fail-if-missing or no-fail-if-missing".to_string(),
                     value: fail_behavior_val.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -529,7 +531,7 @@ pub fn join_map(
             Value::Null => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "non-null",
+                        expected: "non-null".to_string(),
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -539,7 +541,7 @@ pub fn join_map(
             Value::Array(_) | Value::Object(_) => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "scalar",
+                        expected: "scalar".to_string(),
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -606,7 +608,7 @@ pub fn join_node_taints(
                     } else {
                         return Err(RenderError::from(
                             error::TemplateHelperError::InvalidTemplateValue {
-                                expected: "string",
+                                expected: "string".to_string(),
                                 value: taint_value.to_owned(),
                                 template: template_name.to_owned(),
                             },
@@ -617,7 +619,7 @@ pub fn join_node_taints(
             Value::Null => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "non-null",
+                        expected: "non-null".to_string(),
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -627,7 +629,7 @@ pub fn join_node_taints(
             _ => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "sequence",
+                        expected: "sequence".to_string(),
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -677,7 +679,7 @@ pub fn default(
         Value::Null | Value::Array(_) | Value::Object(_) => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "non-null scalar",
+                    expected: "non-null scalar".to_string(),
                     value: default_val.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -698,7 +700,7 @@ pub fn default(
         Value::Array(_) | Value::Object(_) => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "scalar",
+                    expected: "scalar".to_string(),
                     value: requested_value.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1090,7 +1092,7 @@ pub fn kube_reserve_memory(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "number",
+                    expected: "number".to_string(),
                     value: max_num_pods_val.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1118,7 +1120,7 @@ pub fn kube_reserve_memory(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "scalar",
+                    expected: "scalar".to_string(),
                     value: memory_to_reserve_value.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1162,7 +1164,7 @@ pub fn kube_reserve_cpu(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "scalar",
+                    expected: "scalar".to_string(),
                     value: cpu_to_reserve_value.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1237,7 +1239,7 @@ pub fn localhost_aliases(
         "ipv6" => IPV6_LOCALHOST,
         _ => {
             return Err(error::TemplateHelperError::InvalidTemplateValue {
-                expected: r#"one of ("ipv4", "ipv6")"#,
+                expected: r#"one of ("ipv4", "ipv6")"#.to_string(),
                 value: ip_version_value.to_owned(),
                 template: template_name.to_owned(),
             }
@@ -1378,41 +1380,39 @@ pub fn oci_defaults(
     out: &mut dyn Output,
 ) -> Result<(), RenderError> {
     // To give context to our errors, get the template name (e.g. what file we are rendering), if available.
-    info!("Starting oci_defaults helper");
+    trace!("Starting oci_defaults helper");
     let template_name = template_name(renderctx);
-    info!("Template name: {}", &template_name);
+    trace!("Template name: {}", &template_name);
 
     // Check number of parameters, must be exactly two (OCI spec section to render and settings values for the section)
-    info!("Number of params: {}", helper.params().len());
+    trace!("Number of params: {}", helper.params().len());
     check_param_count(helper, template_name, 2)?;
-    info!("params: {:?}", helper.params());
+    trace!("params: {:?}", helper.params());
 
     // Validate the values given to the template
-    info!("Making vec of supported oci spec sections");
-    let supported_oci_spec_sections = vec!["capabilities", "resource-limits"];
-    info!("Getting the desired OCI spec section to render from first param");
-    let oci_spec_section = get_param(helper, 0)?;
-    let oci_spec_section_was_null: bool = oci_spec_section.is_null();
-    info!(
+    trace!("Getting the desired OCI spec section to render in THIS call from the first param");
+    let current_oci_spec_section = get_param(helper, 0)?;
+    let current_oci_spec_section_was_null: bool = current_oci_spec_section.is_null();
+    trace!(
         "OCI Spec section to render was null? {}",
-        oci_spec_section_was_null
+        current_oci_spec_section_was_null
     );
 
-    info!(
+    trace!(
         "Matching whether the desired OCI spec section is supported ({})",
-        oci_spec_section
+        current_oci_spec_section
             .as_str()
             .with_context(|| error::InvalidTemplateValueSnafu {
-                expected: "string",
-                value: oci_spec_section.to_owned(),
+                expected: SUPPORTED_OCI_SPEC_SECTIONS.join(", "),
+                value: current_oci_spec_section.to_owned(),
                 template: template_name.to_owned(),
             })?
     );
-    let good_oci_spec_section = match oci_spec_section {
-        Value::String(oci_spec_section)
-            if (supported_oci_spec_sections.contains(&oci_spec_section.as_str())) =>
+    let good_oci_spec_section = match current_oci_spec_section {
+        Value::String(current_oci_spec_section)
+            if (SUPPORTED_OCI_SPEC_SECTIONS.contains(&current_oci_spec_section.as_str())) =>
         {
-            oci_spec_section.as_str()
+            current_oci_spec_section.as_str()
         }
         &handlebars::JsonValue::String(_)
         | Value::Null
@@ -1420,70 +1420,120 @@ pub fn oci_defaults(
         | Value::Number(_)
         | Value::Array(_)
         | Value::Object(_) => {
-            info!(
-                "Error condition hit! Bad path taken: oci spec section type is {:?}",
-                oci_spec_section.type_id()
+            trace!(
+                "Error condition hit! Bad path taken: current OCI spec section type is unexpected: {:?}",
+                current_oci_spec_section.type_id()
             );
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "one of: \"capabilities\", \"resource-limits\"",
-                    value: oci_spec_section.to_owned(),
+                    expected: format!("one of: '{}'", SUPPORTED_OCI_SPEC_SECTIONS.join(", ")),
+                    value: current_oci_spec_section.to_owned(),
                     template: template_name.to_owned(),
                 },
             ));
         }
     };
 
-    info!("Getting the desired OCI spec section SETTING VALUES to render from second param");
-    let oci_spec_section_values = get_param(helper, 1)?;
-    // deserialize OCI defaults settings blob
-    // do a match on what i want to write
-    info!("OCI spec values: {}", oci_spec_section_values);
-    let something: OciDefaults = serde_json::from_value(oci_spec_section_values.clone())?;
-    info!("something: {:?}", something);
-    info!("OCI spec capabilities: ----");
-    for capability in something.capabilities.iter() {
-        info!("capability: {:?}", capability.keys());
-        // for cap in capability {
-        //     info!("{}", cap); // implement IntoIterator for either the capabilities struct or something else? probably the capabilities struct
-        // }
+    trace!("Getting the desired OCI spec section SETTING VALUES to render from second param");
+    let oci_defaults_values = get_param(helper, 1)?;
+    trace!("OCI spec Values: {}", oci_defaults_values);
+    let oci_defaults: OciDefaults = serde_json::from_value(oci_defaults_values.clone())?;
+    trace!("oci_defaults: {:?}", oci_defaults);
+
+    // Only output the capabilities we support and ignore unknown/unsupported capabilities.
+    let mut capabilities_lines: Vec<String> = Vec::new();
+    for (capability, value) in oci_defaults.capabilities.iter().flatten() {
+        if value == &true {
+            capabilities_lines.push(match PROC_CAPABILITY_SETTING_MAP.get(capability.as_ref()) {
+                None => "".to_string(),
+                Some(cap) => format!("\"{}\"", cap.to_string()),
+            })
+        }
     }
+
+    let capabilities_lines_inner_joined = capabilities_lines.join(",\n");
+
+    let capabilities_lines_joined = format!(
+        "\"bounding\": [
+{capabilities_bounding}
+            ],
+            \"effective\": [
+{capabilities_effective}
+            ],
+            \"permitted\": [
+{capabilities_permitted}
+            ]",
+        capabilities_bounding = capabilities_lines_inner_joined,
+        capabilities_effective = capabilities_lines_inner_joined,
+        capabilities_permitted = capabilities_lines_inner_joined,
+    );
+
+    trace!("capabilities_lines_joined: \n{}", capabilities_lines_joined);
+
+    // Only output the resource limits we support and ignore unknown/unsupported resource limits.
+    let mut rlimit_objects: Vec<String> = Vec::new();
+    for (rlimit, rlimit_values) in oci_defaults.resource_limits.iter().flatten() {
+        trace!(
+            "rlimit: {}, hard: {:?}, soft: {:?}",
+            rlimit,
+            rlimit_values.hard_limit,
+            rlimit_values.soft_limit
+        );
+        let mut current_rlimit_object_lines: Vec<String> = Vec::new();
+        let rlimit_name = match RLIMIT_SETTING_MAP.get(rlimit.as_ref()) {
+            None => "".to_string(),
+            Some(rlimit_type_matched) => {
+                trace!(
+                    "resource limit found for '{}': '{}'",
+                    rlimit,
+                    rlimit_type_matched
+                );
+                rlimit_type_matched.to_string()
+            }
+        };
+
+        current_rlimit_object_lines.push("{".to_string());
+        current_rlimit_object_lines.push(format!(
+            "\"type\": \"{rlimit_type}\",",
+            rlimit_type = rlimit_name
+        ));
+
+        let mut rlimit_hard_soft_lines: Vec<String> = Vec::new();
+        if let Some(rlimit_hard_value) = rlimit_values.hard_limit {
+            rlimit_hard_soft_lines.push(format!(
+                "\"hard\": {rlimit_hard}",
+                rlimit_hard = rlimit_hard_value
+            ))
+        }
+
+        if let Some(rlimit_soft_value) = rlimit_values.soft_limit {
+            rlimit_hard_soft_lines.push(format!(
+                "\"soft\": {rlimit_soft}",
+                rlimit_soft = rlimit_soft_value
+            ))
+        }
+
+        current_rlimit_object_lines.push(rlimit_hard_soft_lines.join(",\n"));
+
+        current_rlimit_object_lines.push("}".to_string());
+        rlimit_objects.push(current_rlimit_object_lines.join("\n"));
+    }
+
+    let rlimit_lines_joined = rlimit_objects.join(",\n");
+    trace!("rlimit_lines_joined: \n{}", rlimit_lines_joined);
 
     // Generate the requested valid OCI spec section
     let result_lines = match good_oci_spec_section {
-        "capabilities" => {
-            "capabilities_go_here
-        capabilities_go_here
-        capabilities_go_here"
-        }
-        "resource-limits" => match oci_spec_section_values.get("resource-limits") {
-            None => "No resource limit found",
-            Some(resource_limit) => {
-                info!("{}", resource_limit);
-                if let Some(resource_limit_obj) = resource_limit.as_object() {
-                    info!("{:?}", resource_limit_obj.get("max-open-files"));
-                    info!("{:?}", resource_limit_obj);
-                    "resource limit found"
-                } else {
-                    "no resource limit found"
-                }
-            }
-        },
-        // for resource_limit in oci_spec_section_values.get("resource-limits") {
-        //     let resource_limit_lines = match RLIMIT_SETTING_MAP
-        //         .borrow()
-        //         .get(resource_limit.as_str().borrow())
-        //     {
-        //         _ => "s",
-        //     };
-        // }
-        _ => "x",
+        "capabilities" => capabilities_lines_joined,
+        "resource-limits" => rlimit_lines_joined,
+        _ => "NOT A PERMITTED OCI SPEC SECTION!".to_string(),
     };
 
     // Write out the final values to the configuration file
-    out.write(result_lines).context(error::TemplateWriteSnafu {
-        template: template_name.to_owned(),
-    })?;
+    out.write(result_lines.as_str())
+        .context(error::TemplateWriteSnafu {
+            template: template_name.to_owned(),
+        })?;
 
     Ok(())
 }
