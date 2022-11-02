@@ -1,7 +1,7 @@
 [settings.oci-defaults]
 
 [metadata.settings.oci-defaults]
-affected-services = ["oci-defaults"] # TODO: add containerd to this list after testing that template generaiton works!
+affected-services = ["oci-defaults", "containerd"]
 
 [services.oci-defaults]
 configuration-files = ["oci-defaults"]
