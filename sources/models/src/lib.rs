@@ -162,8 +162,9 @@ use crate::modeled_types::{
     KubernetesCloudProvider, KubernetesClusterDnsIp, KubernetesClusterName,
     KubernetesDurationValue, KubernetesEvictionHardKey, KubernetesLabelKey, KubernetesLabelValue,
     KubernetesQuantityValue, KubernetesReservedResourceKey, KubernetesTaintValue,
-    KubernetesThresholdValue, Lockdown, PemCertificateString, SingleLineString, SysctlKey,
-    TopologyManagerPolicy, TopologyManagerScope, Url, ValidBase64, ValidLinuxHostname,
+    KubernetesThresholdValue, Lockdown, OciDefaultsCapability, PemCertificateString,
+    SingleLineString, SysctlKey, TopologyManagerPolicy, TopologyManagerScope, Url, ValidBase64,
+    ValidLinuxHostname,
 };
 
 // Kubernetes static pod manifest settings
@@ -432,7 +433,7 @@ struct OciHooks {
 ///// OCI defaults
 #[model]
 struct OciDefaults {
-    capabilities: HashMap<Identifier, bool>,
+    capabilities: HashMap<OciDefaultsCapability, bool>,
     resource_limits: HashMap<Identifier, OciDefaultsResourceLimit>,
 }
 
