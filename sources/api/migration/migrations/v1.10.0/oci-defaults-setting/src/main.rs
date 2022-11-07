@@ -1,6 +1,6 @@
 #![deny(rust_2018_idioms)]
 
-use migration_helpers::common_migrations::AddSettingsMigration;
+use migration_helpers::common_migrations;
 use migration_helpers::{migrate, Result};
 use std::process;
 
@@ -9,9 +9,8 @@ use std::process;
 /// `settings.oci-defaults.capabilities` and
 /// `settings.oci-defaults.resource-limits`
 fn run() -> Result<()> {
-    migrate(AddSettingsMigration(&[
-        "settings.oci-defaults.capabilities",
-        "settings.oci-defaults.resource-limits",
+    migrate(common_migrations::AddPrefixesMigration(vec![
+        "settings.oci-defaults",
     ]))
 }
 

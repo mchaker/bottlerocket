@@ -1436,7 +1436,7 @@ pub fn oci_defaults(
 
     trace!("Getting the desired OCI spec section SETTING VALUES to render from second param");
     let oci_defaults_values = get_param(helper, 1)?;
-    trace!("OCI spec Values: {}", oci_defaults_values);
+    info!("OCI spec Values: {}", oci_defaults_values);
     let oci_defaults: OciDefaults = serde_json::from_value(oci_defaults_values.clone())?;
     trace!("oci_defaults: {:?}", oci_defaults);
 
