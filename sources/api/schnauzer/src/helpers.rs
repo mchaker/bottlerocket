@@ -5,7 +5,8 @@
 use dns_lookup::lookup_host;
 use handlebars::{Context, Handlebars, Helper, Output, RenderContext, RenderError};
 use lazy_static::lazy_static;
-use model::OciDefaults;
+use model::modeled_types::Identifier;
+use model::{OciDefaults, OciDefaultsResourceLimit};
 use serde_json::value::Value;
 use snafu::{OptionExt, ResultExt};
 use std::any::{type_name, Any};
@@ -1386,89 +1387,55 @@ pub fn oci_defaults(
 
     // Check number of parameters, must be exactly two (OCI spec section to render and settings values for the section)
     trace!("Number of params: {}", helper.params().len());
-    check_param_count(helper, template_name, 2)?;
+    check_param_count(helper, template_name, 1)?;
     trace!("params: {:?}", helper.params());
 
-    // Validate the values given to the template
-    trace!("Getting the desired OCI spec section to render in THIS call from the first param");
-    let current_oci_spec_section = get_param(helper, 0)?;
-    let current_oci_spec_section_was_null: bool = current_oci_spec_section.is_null();
-    trace!(
-        "OCI Spec section to render was null? {}",
-        current_oci_spec_section_was_null
-    );
+    trace!("Getting the requested OCI spec section to render");
+    let oci_defaults_values = get_param(helper, 0)?;
+    let oci_spec_section: &str =
+        if let Some(helper_params_relative_path) = helper.params()[0].relative_path() {
+            if let Some(helper_params_relative_path_last_part) =
+                helper_params_relative_path.split('.').next_back()
+            {
+                info!(
+                    "helper params 0 relative path: {}",
+                    helper_params_relative_path_last_part
+                );
+                helper_params_relative_path_last_part
+            } else {
+                ""
+            }
+        } else {
+            ""
+        };
 
-    trace!(
-        "Matching whether the desired OCI spec section is supported ({})",
-        current_oci_spec_section
-            .as_str()
-            .with_context(|| error::InvalidTemplateValueSnafu {
-                expected: SUPPORTED_OCI_SPEC_SECTIONS.join(", "),
-                value: current_oci_spec_section.to_owned(),
-                template: template_name.to_owned(),
-            })?
-    );
-    let good_oci_spec_section = match current_oci_spec_section {
-        Value::String(current_oci_spec_section)
-            if (SUPPORTED_OCI_SPEC_SECTIONS.contains(&current_oci_spec_section.as_str())) =>
-        {
-            current_oci_spec_section.as_str()
-        }
-        &handlebars::JsonValue::String(_)
-        | Value::Null
-        | Value::Bool(_)
-        | Value::Number(_)
-        | Value::Array(_)
-        | Value::Object(_) => {
-            trace!(
-                "Error condition hit! Bad path taken: current OCI spec section type is unexpected: {:?}",
-                current_oci_spec_section.type_id()
-            );
-            return Err(RenderError::from(
-                error::TemplateHelperError::InvalidTemplateValue {
-                    expected: format!("one of: '{}'", SUPPORTED_OCI_SPEC_SECTIONS.join(", ")),
-                    value: current_oci_spec_section.to_owned(),
-                    template: template_name.to_owned(),
-                },
-            ));
-        }
-    };
-
-    trace!("Getting the desired OCI spec section SETTING VALUES to render from second param");
-    let oci_defaults_values = get_param(helper, 1)?;
-    info!("OCI spec Values: {}", oci_defaults_values);
-    if let Some(helper_param_relative_path) = helper.params()[1].relative_path() {
-        if let Some(helper_param_relative_path_last_part) =
-            helper_param_relative_path.split('.').next_back()
-        {
+    // Generate the requested OCI spec section
+    let result_lines = match oci_spec_section {
+        "capabilities" => {
+            let oci_default_capabilities: HashMap<Identifier, bool> =
+                serde_json::from_value(oci_defaults_values.clone())?;
             info!(
-                "helper params 1 relative path: {}",
-                helper_param_relative_path_last_part
-            )
-        }
-    }
-    // info!(
-    //     "helper params 1 relative path: {}",
-    //     helper.params()[1].relative_path().take()
-    // );
-    let oci_defaults: OciDefaults = serde_json::from_value(oci_defaults_values.clone())?;
-    info!("oci_defaults serde_json: {:?}", oci_defaults);
+                "oci_default_capabilities serde_json: {:?}",
+                oci_default_capabilities
+            );
 
-    // Only output the capabilities we support and ignore unknown/unsupported capabilities.
-    let mut capabilities_lines: Vec<String> = Vec::new();
-    for (capability, value) in oci_defaults.capabilities.iter().flatten() {
-        if value == &true {
-            capabilities_lines.push(match PROC_CAPABILITY_SETTING_MAP.get(capability.as_ref()) {
-                None => "".to_string(),
-                Some(cap) => format!("\"{}\"", cap.to_string()),
-            })
-        }
-    }
+            // Only output the capabilities we support and ignore unknown/unsupported capabilities.
+            let mut capabilities_lines: Vec<String> = Vec::new();
+            for (capability, value) in oci_default_capabilities {
+                if value == true {
+                    capabilities_lines.push(
+                        match PROC_CAPABILITY_SETTING_MAP.get(capability.as_ref()) {
+                            None => "".to_string(),
+                            Some(cap) => format!("\"{}\"", cap.to_string()),
+                        },
+                    )
+                }
+            }
 
-    let capabilities_lines_inner_joined = capabilities_lines.join(",\n");
+            let capabilities_lines_inner_joined = capabilities_lines.join(",\n");
 
-    let capabilities_lines_joined = format!(
-        "\"bounding\": [
+            let capabilities_lines_joined = format!(
+                "\"bounding\": [
 {capabilities_bounding}
             ],
             \"effective\": [
@@ -1477,71 +1444,81 @@ pub fn oci_defaults(
             \"permitted\": [
 {capabilities_permitted}
             ]",
-        capabilities_bounding = capabilities_lines_inner_joined,
-        capabilities_effective = capabilities_lines_inner_joined,
-        capabilities_permitted = capabilities_lines_inner_joined,
-    );
+                capabilities_bounding = capabilities_lines_inner_joined,
+                capabilities_effective = capabilities_lines_inner_joined,
+                capabilities_permitted = capabilities_lines_inner_joined,
+            );
 
-    trace!("capabilities_lines_joined: \n{}", capabilities_lines_joined);
+            trace!("capabilities_lines_joined: \n{}", capabilities_lines_joined);
 
-    // Only output the resource limits we support and ignore unknown/unsupported resource limits.
-    let mut rlimit_objects: Vec<String> = Vec::new();
-    for (rlimit, rlimit_values) in oci_defaults.resource_limits.iter().flatten() {
-        trace!(
-            "rlimit: {}, hard: {:?}, soft: {:?}",
-            rlimit,
-            rlimit_values.hard_limit,
-            rlimit_values.soft_limit
-        );
-        let mut current_rlimit_object_lines: Vec<String> = Vec::new();
-        let rlimit_name = match RLIMIT_SETTING_MAP.get(rlimit.as_ref()) {
-            None => "".to_string(),
-            Some(rlimit_type_matched) => {
+            capabilities_lines_joined
+        }
+        "resource-limits" => {
+            let oci_default_rlimits: HashMap<Identifier, OciDefaultsResourceLimit> =
+                serde_json::from_value(oci_defaults_values.clone())?;
+            // Only output the resource limits we support and ignore unknown/unsupported resource limits.
+            let mut rlimit_objects: Vec<String> = Vec::new();
+            for (rlimit, rlimit_values) in oci_default_rlimits {
                 trace!(
-                    "resource limit found for '{}': '{}'",
+                    "rlimit: {}, hard: {:?}, soft: {:?}",
                     rlimit,
-                    rlimit_type_matched
+                    rlimit_values.hard_limit,
+                    rlimit_values.soft_limit
                 );
-                rlimit_type_matched.to_string()
+                let mut current_rlimit_object_lines: Vec<String> = Vec::new();
+                let rlimit_name = match RLIMIT_SETTING_MAP.get(rlimit.as_ref()) {
+                    None => "".to_string(),
+                    Some(rlimit_type_matched) => {
+                        trace!(
+                            "resource limit found for '{}': '{}'",
+                            rlimit,
+                            rlimit_type_matched
+                        );
+                        rlimit_type_matched.to_string()
+                    }
+                };
+
+                current_rlimit_object_lines.push("{".to_string());
+                current_rlimit_object_lines.push(format!(
+                    "\"type\": \"{rlimit_type}\",",
+                    rlimit_type = rlimit_name
+                ));
+
+                let mut rlimit_hard_soft_lines: Vec<String> = Vec::new();
+                if let Some(rlimit_hard_value) = rlimit_values.hard_limit {
+                    rlimit_hard_soft_lines.push(format!(
+                        "\"hard\": {rlimit_hard}",
+                        rlimit_hard = rlimit_hard_value
+                    ))
+                }
+
+                if let Some(rlimit_soft_value) = rlimit_values.soft_limit {
+                    rlimit_hard_soft_lines.push(format!(
+                        "\"soft\": {rlimit_soft}",
+                        rlimit_soft = rlimit_soft_value
+                    ))
+                }
+
+                current_rlimit_object_lines.push(rlimit_hard_soft_lines.join(",\n"));
+
+                current_rlimit_object_lines.push("}".to_string());
+                rlimit_objects.push(current_rlimit_object_lines.join("\n"));
             }
-        };
 
-        current_rlimit_object_lines.push("{".to_string());
-        current_rlimit_object_lines.push(format!(
-            "\"type\": \"{rlimit_type}\",",
-            rlimit_type = rlimit_name
-        ));
+            let rlimit_lines_joined = rlimit_objects.join(",\n");
+            trace!("rlimit_lines_joined: \n{}", rlimit_lines_joined);
 
-        let mut rlimit_hard_soft_lines: Vec<String> = Vec::new();
-        if let Some(rlimit_hard_value) = rlimit_values.hard_limit {
-            rlimit_hard_soft_lines.push(format!(
-                "\"hard\": {rlimit_hard}",
-                rlimit_hard = rlimit_hard_value
-            ))
+            rlimit_lines_joined
         }
-
-        if let Some(rlimit_soft_value) = rlimit_values.soft_limit {
-            rlimit_hard_soft_lines.push(format!(
-                "\"soft\": {rlimit_soft}",
-                rlimit_soft = rlimit_soft_value
-            ))
-        }
-
-        current_rlimit_object_lines.push(rlimit_hard_soft_lines.join(",\n"));
-
-        current_rlimit_object_lines.push("}".to_string());
-        rlimit_objects.push(current_rlimit_object_lines.join("\n"));
-    }
-
-    let rlimit_lines_joined = rlimit_objects.join(",\n");
-    trace!("rlimit_lines_joined: \n{}", rlimit_lines_joined);
-
-    // Generate the requested valid OCI spec section
-    let result_lines = match good_oci_spec_section {
-        "capabilities" => capabilities_lines_joined,
-        "resource-limits" => rlimit_lines_joined,
-        _ => "NOT A PERMITTED OCI SPEC SECTION!".to_string(),
+        _ => "Unhandled OCI spec section".to_string(),
     };
+
+    // // Generate the requested valid OCI spec section
+    // let result_lines = match oci_spec_section {
+    //     "capabilities" => capabilities_lines_joined,
+    //     "resource-limits" => rlimit_lines_joined,
+    //     _ => "NOT A PERMITTED OCI SPEC SECTION!".to_string(),
+    // };
 
     // Write out the final values to the configuration file
     out.write(result_lines.as_str())
