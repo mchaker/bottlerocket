@@ -8,7 +8,7 @@
         "cwd": "/",
 {{#if settings.oci-defaults.capabilities}}
         "capabilities": {
-{{oci_defaults "capabilities" settings.oci-defaults}}
+{{oci_defaults "capabilities" settings.oci-defaults.capabilities}}
         },
 {{/if}}
 {{#if settings.oci-defaults.resource-limits}}

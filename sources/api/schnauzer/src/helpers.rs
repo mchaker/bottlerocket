@@ -1437,8 +1437,22 @@ pub fn oci_defaults(
     trace!("Getting the desired OCI spec section SETTING VALUES to render from second param");
     let oci_defaults_values = get_param(helper, 1)?;
     info!("OCI spec Values: {}", oci_defaults_values);
+    if let Some(helper_param_relative_path) = helper.params()[1].relative_path() {
+        if let Some(helper_param_relative_path_last_part) =
+            helper_param_relative_path.split('.').next_back()
+        {
+            info!(
+                "helper params 1 relative path: {}",
+                helper_param_relative_path_last_part
+            )
+        }
+    }
+    // info!(
+    //     "helper params 1 relative path: {}",
+    //     helper.params()[1].relative_path().take()
+    // );
     let oci_defaults: OciDefaults = serde_json::from_value(oci_defaults_values.clone())?;
-    trace!("oci_defaults: {:?}", oci_defaults);
+    info!("oci_defaults serde_json: {:?}", oci_defaults);
 
     // Only output the capabilities we support and ignore unknown/unsupported capabilities.
     let mut capabilities_lines: Vec<String> = Vec::new();
