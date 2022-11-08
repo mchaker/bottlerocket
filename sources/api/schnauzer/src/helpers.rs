@@ -1435,15 +1435,15 @@ pub fn oci_defaults(
             let capabilities_lines_inner_joined = capabilities_lines.join(",\n");
 
             let capabilities_lines_joined = format!(
-                "           \"bounding\": [
+                "\"bounding\": [
 {capabilities_bounding}
-            ],
-            \"effective\": [
+],
+\"effective\": [
 {capabilities_effective}
-            ],
-            \"permitted\": [
+],
+\"permitted\": [
 {capabilities_permitted}
-            ]",
+]",
                 capabilities_bounding = capabilities_lines_inner_joined,
                 capabilities_effective = capabilities_lines_inner_joined,
                 capabilities_permitted = capabilities_lines_inner_joined,
