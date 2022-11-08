@@ -162,9 +162,9 @@ use crate::modeled_types::{
     KubernetesCloudProvider, KubernetesClusterDnsIp, KubernetesClusterName,
     KubernetesDurationValue, KubernetesEvictionHardKey, KubernetesLabelKey, KubernetesLabelValue,
     KubernetesQuantityValue, KubernetesReservedResourceKey, KubernetesTaintValue,
-    KubernetesThresholdValue, Lockdown, OciDefaultsCapability, PemCertificateString,
-    SingleLineString, SysctlKey, TopologyManagerPolicy, TopologyManagerScope, Url, ValidBase64,
-    ValidLinuxHostname,
+    KubernetesThresholdValue, Lockdown, OciDefaultsCapability, OciDefaultsResourceLimitType,
+    PemCertificateString, SingleLineString, SysctlKey, TopologyManagerPolicy, TopologyManagerScope,
+    Url, ValidBase64, ValidLinuxHostname,
 };
 
 // Kubernetes static pod manifest settings
@@ -434,12 +434,13 @@ struct OciHooks {
 #[model]
 struct OciDefaults {
     capabilities: HashMap<OciDefaultsCapability, bool>,
-    resource_limits: HashMap<Identifier, OciDefaultsResourceLimit>,
+    resource_limits: HashMap<OciDefaultsResourceLimitType, OciDefaultsResourceLimit>,
 }
 
 ///// OCI defaults: Linux process capabilities
 #[model]
 struct OciDefaultsResourceLimit {
-    hard_limit: i32,
-    soft_limit: i32,
+    // TODO - during testing, make sure containerd can take the full range of u64's without issue
+    hard_limit: u64,
+    soft_limit: u64,
 }

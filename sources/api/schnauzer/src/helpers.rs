@@ -152,15 +152,6 @@ const KUBE_RESERVE_ADDITIONAL: f32 = 2.5;
 const IPV4_LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 const IPV6_LOCALHOST: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
 
-lazy_static! {
-    /// A map to tell us which internal Linux resource limit maps to which API setting name
-    static ref RLIMIT_SETTING_MAP: HashMap<&'static str, &'static str> = {
-        let mut m = HashMap::new();
-        m.insert("max-open-files", "RLIMIT_NOFILE");
-        m
-    };
-}
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 enum OciSpecSection {
