@@ -1423,12 +1423,10 @@ pub fn oci_defaults(
             let mut capabilities_lines: Vec<String> = Vec::new();
             for (capability, value) in oci_default_capabilities {
                 if value {
-                    capabilities_lines.push(
-                        match PROC_CAPABILITY_SETTING_MAP.get(capability.as_ref()) {
-                            None => "".to_string(),
-                            Some(cap) => format!("\"{}\"", cap),
-                        },
-                    )
+                    match PROC_CAPABILITY_SETTING_MAP.get(capability.as_ref()) {
+                        None => {} //TODO: Error here? Return or no return? Trace only? How best to handle this?
+                        Some(cap) => capabilities_lines.push(format!("\"{}\"", cap)),
+                    }
                 }
             }
 
@@ -1459,50 +1457,56 @@ pub fn oci_defaults(
             // Only output the resource limits we support and ignore unknown/unsupported resource limits.
             let mut rlimit_objects: Vec<String> = Vec::new();
             for (rlimit, rlimit_values) in oci_default_rlimits {
-                trace!(
+                info!(
                     "rlimit: {}, hard: {:?}, soft: {:?}",
-                    rlimit,
-                    rlimit_values.hard_limit,
-                    rlimit_values.soft_limit
+                    rlimit, rlimit_values.hard_limit, rlimit_values.soft_limit
                 );
-                let mut current_rlimit_object_lines: Vec<String> = Vec::new();
                 let rlimit_name = match RLIMIT_SETTING_MAP.get(rlimit.as_ref()) {
-                    None => "".to_string(),
+                    None => {
+                        info!("resource limit NOT found for '{}'", rlimit);
+                        "".to_string()
+                    }
                     Some(rlimit_type_matched) => {
-                        trace!(
+                        info!(
                             "resource limit found for '{}': '{}'",
-                            rlimit,
-                            rlimit_type_matched
+                            rlimit, rlimit_type_matched
                         );
                         rlimit_type_matched.to_string()
                     }
                 };
 
-                current_rlimit_object_lines.push("{".to_string());
-                current_rlimit_object_lines.push(format!(
-                    "\"type\": \"{rlimit_type}\",",
-                    rlimit_type = rlimit_name
-                ));
+                if !rlimit_name.is_empty() {
+                    let mut current_rlimit_object_lines: Vec<String> = Vec::new();
+                    current_rlimit_object_lines.push("{".to_string());
+                    current_rlimit_object_lines.push(format!(
+                        "\"type\": \"{rlimit_type}\",",
+                        rlimit_type = rlimit_name
+                    ));
 
-                let mut rlimit_hard_soft_lines: Vec<String> = Vec::new();
-                if let Some(rlimit_hard_value) = rlimit_values.hard_limit {
-                    rlimit_hard_soft_lines.push(format!(
-                        "\"hard\": {rlimit_hard}",
-                        rlimit_hard = rlimit_hard_value
-                    ))
+                    let mut rlimit_hard_soft_lines: Vec<String> = Vec::new();
+                    if let Some(rlimit_hard_value) = rlimit_values.hard_limit {
+                        rlimit_hard_soft_lines.push(format!(
+                            "\"hard\": {rlimit_hard}",
+                            rlimit_hard = rlimit_hard_value
+                        ))
+                    } else {
+                        rlimit_hard_soft_lines.push("\"hard\":".to_string()) //TODO: Is this a bad idea? Rendering blank lines? Maybe an error should be sent out/up or printed in the journal instead?
+                    }
+
+                    if let Some(rlimit_soft_value) = rlimit_values.soft_limit {
+                        rlimit_hard_soft_lines.push(format!(
+                            "\"soft\": {rlimit_soft}",
+                            rlimit_soft = rlimit_soft_value
+                        ))
+                    } else {
+                        rlimit_hard_soft_lines.push("\"soft\":".to_string())
+                    }
+
+                    current_rlimit_object_lines.push(rlimit_hard_soft_lines.join(",\n"));
+
+                    current_rlimit_object_lines.push("}".to_string());
+                    rlimit_objects.push(current_rlimit_object_lines.join("\n"));
                 }
-
-                if let Some(rlimit_soft_value) = rlimit_values.soft_limit {
-                    rlimit_hard_soft_lines.push(format!(
-                        "\"soft\": {rlimit_soft}",
-                        rlimit_soft = rlimit_soft_value
-                    ))
-                }
-
-                current_rlimit_object_lines.push(rlimit_hard_soft_lines.join(",\n"));
-
-                current_rlimit_object_lines.push("}".to_string());
-                rlimit_objects.push(current_rlimit_object_lines.join("\n"));
             }
 
             let rlimit_lines_joined = rlimit_objects.join(",\n");
