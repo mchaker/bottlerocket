@@ -1422,11 +1422,11 @@ pub fn oci_defaults(
             // Only output the capabilities we support and ignore unknown/unsupported capabilities.
             let mut capabilities_lines: Vec<String> = Vec::new();
             for (capability, value) in oci_default_capabilities {
-                if value == true {
+                if value {
                     capabilities_lines.push(
                         match PROC_CAPABILITY_SETTING_MAP.get(capability.as_ref()) {
                             None => "".to_string(),
-                            Some(cap) => format!("\"{}\"", cap.to_string()),
+                            Some(cap) => format!("\"{}\"", cap),
                         },
                     )
                 }
@@ -1510,7 +1510,7 @@ pub fn oci_defaults(
 
             rlimit_lines_joined
         }
-        _ => "Unhandled OCI spec section".to_string(),
+        _ => "Unhandled OCI spec section".to_string(), // TODO: Is there a better output for the unhandled/default case?
     };
 
     // // Generate the requested valid OCI spec section
