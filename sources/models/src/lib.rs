@@ -428,3 +428,17 @@ struct PemCertificate {
 struct OciHooks {
     log4j_hotpatch_enabled: bool,
 }
+
+///// OCI defaults
+#[model]
+struct OciDefaults {
+    capabilities: HashMap<Identifier, bool>,
+    resource_limits: HashMap<Identifier, OciDefaultsResourceLimit>,
+}
+
+///// OCI defaults: Linux process capabilities
+#[model]
+struct OciDefaultsResourceLimit {
+    hard_limit: u64,
+    soft_limit: u64,
+}

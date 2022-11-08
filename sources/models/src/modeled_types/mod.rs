@@ -141,6 +141,18 @@ pub mod error {
         #[snafu(display("Invalid imageGCLowThresholdPercent '{}': {}", input, msg))]
         InvalidImageGCLowThresholdPercent { input: String, msg: String },
 
+        #[snafu(display(
+            "Invalid OCI Default value '{}': {}. Validity rule: {}",
+            default_value_name,
+            provided_value,
+            validity_rule,
+        ))]
+        InvalidOciDefaults {
+            default_value_name: String,
+            provided_value: String,
+            validity_rule: String,
+        },
+
         #[snafu(display("Could not parse '{}' as an integer", input))]
         ParseInt {
             input: String,
