@@ -1509,12 +1509,12 @@ pub fn oci_defaults(
                 }
             }
 
-            let rlimit_lines_joined = rlimit_objects.join(",\n");
+            let rlimit_lines_joined = rlimit_objects.join(",\n"); //TODO: strange case: settings.oci-defaults.resource-limits exists... but only contains bad/invalid rlimit values that we don't support. (or typos). Would that then generate an empty rlimits object in the JSON?
             trace!("rlimit_lines_joined: \n{}", rlimit_lines_joined);
 
             rlimit_lines_joined
         }
-        _ => "Unhandled OCI spec section".to_string(), // TODO: Is there a better output for the unhandled/default case?
+        _ => "Unhandled OCI spec section".to_string(), //TODO: Is there a better output for the unhandled/default case?
     };
 
     // // Generate the requested valid OCI spec section
