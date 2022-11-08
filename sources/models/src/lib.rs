@@ -439,6 +439,6 @@ struct OciDefaults {
 ///// OCI defaults: Linux process capabilities
 #[model]
 struct OciDefaultsResourceLimit {
-    hard_limit: i32,
-    soft_limit: i32,
+    hard_limit: u64,
+    soft_limit: u64,
 }
