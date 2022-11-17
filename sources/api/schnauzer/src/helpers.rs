@@ -5,17 +5,13 @@
 use dns_lookup::lookup_host;
 use handlebars::{Context, Handlebars, Helper, Output, RenderContext, RenderError};
 use lazy_static::lazy_static;
-use model::modeled_types::{Identifier, OciDefaultsCapability, OciDefaultsResourceLimitType};
-use model::{OciDefaults, OciDefaultsResourceLimit};
+use model::modeled_types::{OciDefaultsCapability, OciDefaultsResourceLimitType};
+use model::OciDefaultsResourceLimit;
 use serde_json::value::Value;
 use snafu::{OptionExt, ResultExt};
-use std::any::{type_name, Any};
 use std::borrow::Borrow;
-use std::collections::hash_map::Keys;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::fmt::format;
-use std::iter::Map;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::vec;
 use url::Url;
@@ -151,66 +147,6 @@ const KUBE_RESERVE_ADDITIONAL: f32 = 2.5;
 
 const IPV4_LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 const IPV6_LOCALHOST: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
-
-// lazy_static! {
-//     /// A map to tell us which internal Linux process capability maps to which API setting name
-//     static ref PROC_CAPABILITY_SETTING_MAP: HashMap<&'static str, &'static str> = {
-//         let mut m = HashMap::new();
-//         m.insert("audit-control", "CAP_AUDIT_CONTROL");
-//         m.insert("audit-read", "CAP_AUDIT_READ");
-//         m.insert("audit-write", "CAP_AUDIT_WRITE");
-//         m.insert("block-suspend", "CAP_BLOCK_SUSPEND");
-//         m.insert("bpf", "CAP_BPF");
-//         m.insert("checkpoint-restore", "CAP_CHECKPOINT_RESTORE");
-//         m.insert("chown", "CAP_CHOWN");
-//         m.insert("dac-override", "CAP_DAC_OVERRIDE");
-//         m.insert("dac-read-search", "CAP_DAC_READ_SEARCH");
-//         m.insert("fowner", "CAP_FOWNER");
-//         m.insert("fsetid", "CAP_FSETID");
-//         m.insert("ipc-lock", "CAP_IPC_LOCK");
-//         m.insert("ipc-owner", "CAP_IPC_OWNER");
-//         m.insert("kill", "CAP_KILL");
-//         m.insert("lease", "CAP_LEASE");
-//         m.insert("linux-immutable", "CAP_LINUX_IMMUTABLE");
-//         m.insert("mac-admin", "CAP_MAC_ADMIN");
-//         m.insert("mac-override", "CAP_MAC_OVERRIDE");
-//         m.insert("mknod", "CAP_MKNOD");
-//         m.insert("net-admin", "CAP_NET_ADMIN");
-//         m.insert("net-bind-service", "CAP_NET_BIND_SERVICE");
-//         m.insert("net-broadcast", "CAP_NET_BROADCAST");
-//         m.insert("net-raw", "CAP_NET_RAW");
-//         m.insert("perfmon", "CAP_PERFMON");
-//         m.insert("setgid", "CAP_SETGID");
-//         m.insert("setfcap", "CAP_SETFCAP");
-//         m.insert("setpcap", "CAP_SETPCAP");
-//         m.insert("setuid", "CAP_SETUID");
-//         m.insert("sys-admin", "CAP_SYS_ADMIN");
-//         m.insert("sys-boot", "CAP_SYS_BOOT");
-//         m.insert("sys-chroot", "CAP_SYS_CHROOT");
-//         m.insert("sys-module", "CAP_SYS_MODULE");
-//         m.insert("sys-nice", "CAP_SYS_NICE");
-//         m.insert("sys-pacct", "CAP_SYS_PACCT");
-//         m.insert("sys-ptrace", "CAP_SYS_PTRACE");
-//         m.insert("sys-rawio", "CAP_SYS_RAWIO");
-//         m.insert("sys-resource", "CAP_SYS_RESOURCE");
-//         m.insert("sys-time", "CAP_SYS_TIME");
-//         m.insert("sys-tty-config", "CAP_SYS_TTY_CONFIG");
-//         m.insert("syslog", "CAP_SYSLOG");
-//         m.insert("wake-alarm", "CAP_WAKE_ALARM");
-//         m
-//     };
-// }
-//
-// lazy_static! {
-//     /// A map to tell us which internal Linux resource limit maps to which API setting name
-//     static ref RLIMIT_SETTING_MAP: HashMap<&'static str, &'static str> = {
-//         let mut m = HashMap::new();
-//         m.insert("max-open-files", "RLIMIT_NOFILE");
-//         m
-//     };
-// }
-
-static SUPPORTED_OCI_SPEC_SECTIONS: [&'static str; 2] = ["capabilities", "resource-limits"];
 
 /// Potential errors during helper execution
 mod error {
@@ -1474,24 +1410,37 @@ fn oci_spec_capabilities(value: &Value) -> Result<String, RenderError> {
 fn oci_spec_resource_limits(value: &Value) -> Result<String, RenderError> {
     let oci_default_rlimits: HashMap<OciDefaultsResourceLimitType, OciDefaultsResourceLimit> =
         serde_json::from_value(value.clone())?;
-    // Only output the resource limits we support and ignore unknown/unsupported resource limits.
-    let rlimit_objects: Vec<String> = oci_default_rlimits
-        .iter()
-        .map(|(rlimit_type, rlimit_values)| {
-            format!(
-                "{{
-\"type\": \"{rlimit_type}\",
-\"hard\": {rlimit_hard},
-\"soft\": {rlimit_soft}
-}}",
-                rlimit_type = rlimit_type.as_linux_string(),
-                rlimit_hard = rlimit_values.hard_limit,
-                rlimit_soft = rlimit_values.soft_limit,
-            )
-        })
-        .collect();
 
-    let result_lines = rlimit_objects.join(",\n");
+    let mut result_lines = String::new();
+    let mut is_first = true;
+    for (rlimit_type, values) in oci_default_rlimits
+        .iter()
+        // Bottlerocket model values are optional, if we have no hard_limit or soft_limit, we skip
+        // the map entry.
+        .filter(|(_, rlimit)| rlimit.hard_limit.is_some() || rlimit.soft_limit.is_some())
+    {
+        if !is_first {
+            result_lines.push_str(",\n");
+            is_first = false;
+        }
+        let hard_limit = values
+            .hard_limit
+            .unwrap_or(values.soft_limit.unwrap_or_default());
+        let soft_limit = values
+            .soft_limit
+            .unwrap_or(values.hard_limit.unwrap_or_default());
+        let object = format!(
+            "{{
+\"type\": \"{}\",
+\"hard\": {},
+\"soft\": {}
+}}",
+            rlimit_type.as_linux_string(),
+            hard_limit,
+            soft_limit,
+        );
+        result_lines.push_str(&object);
+    }
     Ok(result_lines)
 }
 
