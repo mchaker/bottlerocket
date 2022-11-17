@@ -1381,8 +1381,8 @@ pub fn etc_hosts_entries(
 /// * sources/models/shared-defaults/oci-resource-limits.toml
 /// * sources/models/shared-defaults/oci-capabilities.toml
 
-fn get_param_path(helper: &Helper<'_, '_>, index: i32) -> Result<&String, error::RenderError> {
-    helper
+fn get_param_path<'a>(helper: &'a Helper<'_, '_>, index: usize) -> Result<&'a String, RenderError> {
+    Ok(helper
         .params()
         .get(index)
         .context(error::MissingParamSnafu {
@@ -1393,7 +1393,7 @@ fn get_param_path(helper: &Helper<'_, '_>, index: i32) -> Result<&String, error:
         .context(error::MissingParamPathSnafu {
             index,
             helper_name: helper.name(),
-        })?
+        })?)
 }
 
 pub fn oci_defaults(
@@ -1443,7 +1443,7 @@ fn oci_spec_capabilities(value: &Value) -> Result<String, RenderError> {
     );
 
     // Only output the capabilities we support and ignore unknown/unsupported capabilities.
-    let mut capabilities_lines: Vec<String> = oci_default_capabilities
+    let capabilities_lines: Vec<String> = oci_default_capabilities
         .iter()
         .filter(|(_, &capability_enabled)| capability_enabled)
         .map(|(&capability, _)| capability.as_linux_string())
@@ -1472,62 +1472,25 @@ fn oci_spec_capabilities(value: &Value) -> Result<String, RenderError> {
 }
 
 fn oci_spec_resource_limits(value: &Value) -> Result<String, RenderError> {
-    let oci_default_rlimits: HashMap<Identifier, OciDefaultsResourceLimit> =
+    let oci_default_rlimits: HashMap<OciDefaultsResourceLimitType, OciDefaultsResourceLimit> =
         serde_json::from_value(value.clone())?;
     // Only output the resource limits we support and ignore unknown/unsupported resource limits.
-    let mut rlimit_objects: Vec<String> = Vec::new();
-    for (rlimit, rlimit_values) in oci_default_rlimits {
-        info!(
-            "rlimit: {}, hard: {:?}, soft: {:?}",
-            rlimit, rlimit_values.hard_limit, rlimit_values.soft_limit
-        );
-        let rlimit_name = match RLIMIT_SETTING_MAP.get(rlimit.as_ref()) {
-            None => {
-                info!("resource limit NOT found for '{}'", rlimit);
-                "".to_string()
-            }
-            Some(rlimit_type_matched) => {
-                info!(
-                    "resource limit found for '{}': '{}'",
-                    rlimit, rlimit_type_matched
-                );
-                rlimit_type_matched.to_string()
-            }
-        };
+    let rlimit_objects: Vec<String> = oci_default_rlimits
+        .iter()
+        .map(|(rlimit_type, rlimit_values)| {
+            format!(
+                "{{
+\"type\": \"{rlimit_type}\",
+\"hard\": {rlimit_hard},
+\"soft\": {rlimit_soft}
+}}",
+                rlimit_type = rlimit_type.as_linux_string(),
+                rlimit_hard = rlimit_values.hard_limit,
+                rlimit_soft = rlimit_values.soft_limit,
+            )
+        })
+        .collect();
 
-        if !rlimit_name.is_empty() {
-            let mut current_rlimit_object_lines: Vec<String> = Vec::new();
-            current_rlimit_object_lines.push("{".to_string());
-            current_rlimit_object_lines.push(format!(
-                "\"type\": \"{rlimit_type}\",",
-                rlimit_type = rlimit_name
-            ));
-
-            let mut rlimit_hard_soft_lines: Vec<String> = Vec::new();
-            if let Some(rlimit_hard_value) = rlimit_values.hard_limit {
-                rlimit_hard_soft_lines.push(format!(
-                    "\"hard\": {rlimit_hard}",
-                    rlimit_hard = rlimit_hard_value
-                ))
-            } else {
-                rlimit_hard_soft_lines.push("\"hard\":".to_string()) //TODO: Is this a bad idea? Rendering blank lines? Maybe an error should be sent out/up or printed in the journal instead?
-            }
-
-            if let Some(rlimit_soft_value) = rlimit_values.soft_limit {
-                rlimit_hard_soft_lines.push(format!(
-                    "\"soft\": {rlimit_soft}",
-                    rlimit_soft = rlimit_soft_value
-                ))
-            } else {
-                rlimit_hard_soft_lines.push("\"soft\":".to_string())
-            }
-
-            current_rlimit_object_lines.push(rlimit_hard_soft_lines.join(",\n"));
-
-            current_rlimit_object_lines.push("}".to_string());
-            rlimit_objects.push(current_rlimit_object_lines.join("\n"));
-        }
-    }
     let result_lines = rlimit_objects.join(",\n");
     Ok(result_lines)
 }
