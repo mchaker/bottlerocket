@@ -35,9 +35,6 @@ Source110: prepare-var-lib-containerd.service
 
 Source1000: clarify.toml
 
-# TODO: submit this upstream, including a unit test.
-Patch1001: 1001-cri-set-default-RLIMIT_NOFILE.patch
-
 BuildRequires: git
 BuildRequires: %{_cross_os}glibc-devel
 Requires: %{_cross_os}runc
