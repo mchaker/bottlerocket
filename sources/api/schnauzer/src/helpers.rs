@@ -1356,7 +1356,7 @@ pub fn oci_defaults(
     let oci_spec_section = settings_path.split('.').last().expect("TODO");
 
     let result_lines = match oci_spec_section {
-        "capabilties" => oci_spec_capabilities(oci_defaults_values)?,
+        "capabilities" => oci_spec_capabilities(oci_defaults_values)?,
         "resource-limits" => oci_spec_resource_limits(oci_defaults_values)?,
         _ => panic!("bad oci_spec_section: {}", oci_spec_section),
     };
