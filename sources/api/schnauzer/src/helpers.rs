@@ -200,7 +200,7 @@ mod error {
             template
         ))]
         InvalidTemplateValue {
-            expected: String,
+            expected: &'static str,
             value: handlebars::JsonValue,
             template: String,
         },
@@ -434,7 +434,7 @@ pub fn join_map(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "fail-if-missing or no-fail-if-missing".to_string(),
+                    expected: "fail-if-missing or no-fail-if-missing",
                     value: fail_behavior_val.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -479,7 +479,7 @@ pub fn join_map(
             Value::Null => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "non-null".to_string(),
+                        expected: "non-null",
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -489,7 +489,7 @@ pub fn join_map(
             Value::Array(_) | Value::Object(_) => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "scalar".to_string(),
+                        expected: "scalar",
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -556,7 +556,7 @@ pub fn join_node_taints(
                     } else {
                         return Err(RenderError::from(
                             error::TemplateHelperError::InvalidTemplateValue {
-                                expected: "string".to_string(),
+                                expected: "string",
                                 value: taint_value.to_owned(),
                                 template: template_name.to_owned(),
                             },
@@ -567,7 +567,7 @@ pub fn join_node_taints(
             Value::Null => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "non-null".to_string(),
+                        expected: "non-null",
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -577,7 +577,7 @@ pub fn join_node_taints(
             _ => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "sequence".to_string(),
+                        expected: "sequence",
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -627,7 +627,7 @@ pub fn default(
         Value::Null | Value::Array(_) | Value::Object(_) => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "non-null scalar".to_string(),
+                    expected: "non-null scalar",
                     value: default_val.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -648,7 +648,7 @@ pub fn default(
         Value::Array(_) | Value::Object(_) => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "scalar".to_string(),
+                    expected: "scalar",
                     value: requested_value.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1040,7 +1040,7 @@ pub fn kube_reserve_memory(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "number".to_string(),
+                    expected: "number",
                     value: max_num_pods_val.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1068,7 +1068,7 @@ pub fn kube_reserve_memory(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "scalar".to_string(),
+                    expected: "scalar",
                     value: memory_to_reserve_value.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1112,7 +1112,7 @@ pub fn kube_reserve_cpu(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "scalar".to_string(),
+                    expected: "scalar",
                     value: cpu_to_reserve_value.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1187,7 +1187,7 @@ pub fn localhost_aliases(
         "ipv6" => IPV6_LOCALHOST,
         _ => {
             return Err(error::TemplateHelperError::InvalidTemplateValue {
-                expected: r#"one of ("ipv4", "ipv6")"#.to_string(),
+                expected: r#"one of ("ipv4", "ipv6")"#,
                 value: ip_version_value.to_owned(),
                 template: template_name.to_owned(),
             }
