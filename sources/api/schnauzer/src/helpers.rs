@@ -1427,7 +1427,7 @@ fn oci_spec_capabilities(value: &Value) -> Result<String, RenderError> {
     let capabilities_lines: Vec<String> = oci_default_capabilities
         .iter()
         .filter(|(_, &capability_enabled)| capability_enabled)
-        .map(|(&capability, _)| format!("\"{}\"", capability.as_linux_string()))
+        .map(|(&capability, _)| format!("\"{}\"", capability.to_linux_string()))
         .collect();
 
     let capabilities_lines_inner_joined = capabilities_lines.join(",\n");

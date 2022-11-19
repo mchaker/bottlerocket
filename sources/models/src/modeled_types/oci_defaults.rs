@@ -60,7 +60,7 @@ derive_fromstr_from_deserialize!(OciDefaultsCapability);
 impl OciDefaultsCapability {
     /// Converts from Bottlerocket's kabob-case name into the Linux capability name, e.g. turns
     /// `wake-alarm` into `CAP_WAKE_ALARM`.
-    pub fn as_linux_string(&self) -> String {
+    pub fn to_linux_string(&self) -> String {
         format!("CAP_{}", self.to_string().to_uppercase().replace('-', "_"))
     }
 }
@@ -71,7 +71,7 @@ mod oci_defaults_capabilities {
 
     fn check_capability_strings(cap: OciDefaultsCapability, bottlerocket: &str, linux: &str) {
         let actual_bottlerocket = cap.to_string();
-        let actual_linux = cap.as_linux_string();
+        let actual_linux = cap.to_linux_string();
         assert_eq!(bottlerocket, actual_bottlerocket);
         assert_eq!(linux, actual_linux);
     }
