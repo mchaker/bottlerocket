@@ -1,0 +1,17 @@
+[settings.oci-defaults.capabilities]
+# These values were sourced from the output of `ctr oci spec`, then
+# modified for Bottlerocket.
+audit-write = true
+chown = true
+dac-override = true
+fowner = true
+fsetid = true
+kill = true
+mknod = true
+net-bind-service = true
+net-raw = false
+setgid = true
+setfcap = true
+setpcap = true
+setuid = true
+sys-chroot = true

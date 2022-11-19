@@ -145,6 +145,18 @@ pub mod error {
         #[snafu(display("Invalid ECS duration value '{}'", input))]
         InvalidECSDurationValue { input: String },
 
+        #[snafu(display(
+            "Invalid OCI Default value '{}': {}. Validity rule: {}",
+            default_value_name,
+            provided_value,
+            validity_rule,
+        ))]
+        InvalidOciDefaults {
+            default_value_name: String,
+            provided_value: String,
+            validity_rule: String,
+        },
+
         #[snafu(display("Could not parse '{}' as an integer", input))]
         ParseInt {
             input: String,
@@ -273,8 +285,10 @@ macro_rules! require {
 // Must be after macro definition
 mod ecs;
 mod kubernetes;
+mod oci_defaults;
 mod shared;
 
 pub use ecs::*;
 pub use kubernetes::*;
+pub use oci_defaults::*;
 pub use shared::*;

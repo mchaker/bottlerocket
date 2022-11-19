@@ -7,6 +7,8 @@ use handlebars::{
     handlebars_helper, Context, Handlebars, Helper, Output, RenderContext, RenderError,
 };
 use lazy_static::lazy_static;
+use model::modeled_types::{OciDefaultsCapability, OciDefaultsResourceLimitType};
+use model::OciDefaultsResourceLimit;
 use serde::Deserialize;
 use serde_json::value::Value;
 use snafu::{OptionExt, ResultExt};
@@ -14,6 +16,7 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::vec;
 use url::Url;
 
 lazy_static! {
@@ -197,7 +200,7 @@ mod error {
             template
         ))]
         InvalidTemplateValue {
-            expected: &'static str,
+            expected: String,
             value: handlebars::JsonValue,
             template: String,
         },
@@ -230,6 +233,13 @@ mod error {
 
         #[snafu(display("Missing param {} for helper '{}'", index, helper_name))]
         MissingParam { index: usize, helper_name: String },
+
+        #[snafu(display(
+            "Missing parameter path for param {} for helper '{}'",
+            index,
+            helper_name
+        ))]
+        MissingParamPath { index: usize, helper_name: String },
 
         #[snafu(display(
             "Missing data and fail-if-missing was set; see given line/col in template '{}'",
@@ -424,7 +434,7 @@ pub fn join_map(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "fail-if-missing or no-fail-if-missing",
+                    expected: "fail-if-missing or no-fail-if-missing".to_string(),
                     value: fail_behavior_val.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -469,7 +479,7 @@ pub fn join_map(
             Value::Null => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "non-null",
+                        expected: "non-null".to_string(),
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -479,7 +489,7 @@ pub fn join_map(
             Value::Array(_) | Value::Object(_) => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "scalar",
+                        expected: "scalar".to_string(),
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -546,7 +556,7 @@ pub fn join_node_taints(
                     } else {
                         return Err(RenderError::from(
                             error::TemplateHelperError::InvalidTemplateValue {
-                                expected: "string",
+                                expected: "string".to_string(),
                                 value: taint_value.to_owned(),
                                 template: template_name.to_owned(),
                             },
@@ -557,7 +567,7 @@ pub fn join_node_taints(
             Value::Null => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "non-null",
+                        expected: "non-null".to_string(),
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -567,7 +577,7 @@ pub fn join_node_taints(
             _ => {
                 return Err(RenderError::from(
                     error::TemplateHelperError::InvalidTemplateValue {
-                        expected: "sequence",
+                        expected: "sequence".to_string(),
                         value: val_value.to_owned(),
                         template: template_name.to_owned(),
                     },
@@ -617,7 +627,7 @@ pub fn default(
         Value::Null | Value::Array(_) | Value::Object(_) => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "non-null scalar",
+                    expected: "non-null scalar".to_string(),
                     value: default_val.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -638,7 +648,7 @@ pub fn default(
         Value::Array(_) | Value::Object(_) => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "scalar",
+                    expected: "scalar".to_string(),
                     value: requested_value.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1030,7 +1040,7 @@ pub fn kube_reserve_memory(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "number",
+                    expected: "number".to_string(),
                     value: max_num_pods_val.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1058,7 +1068,7 @@ pub fn kube_reserve_memory(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "scalar",
+                    expected: "scalar".to_string(),
                     value: memory_to_reserve_value.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1102,7 +1112,7 @@ pub fn kube_reserve_cpu(
         _ => {
             return Err(RenderError::from(
                 error::TemplateHelperError::InvalidTemplateValue {
-                    expected: "scalar",
+                    expected: "scalar".to_string(),
                     value: cpu_to_reserve_value.to_owned(),
                     template: template_name.to_owned(),
                 },
@@ -1177,7 +1187,7 @@ pub fn localhost_aliases(
         "ipv6" => IPV6_LOCALHOST,
         _ => {
             return Err(error::TemplateHelperError::InvalidTemplateValue {
-                expected: r#"one of ("ipv4", "ipv6")"#,
+                expected: r#"one of ("ipv4", "ipv6")"#.to_string(),
                 value: ip_version_value.to_owned(),
                 template: template_name.to_owned(),
             }
@@ -1345,6 +1355,139 @@ handlebars_helper!(any_enabled: |arg: Value| {
     }
     result
 });
+
+/// This helper writes out the default OCI runtime spec.
+///
+/// Default settings are specified in the following files:
+/// * sources/models/shared-defaults/oci-resource-limits.toml
+/// * sources/models/shared-defaults/oci-capabilities.toml
+
+fn get_param_path<'a>(helper: &'a Helper<'_, '_>, index: usize) -> Result<&'a String, RenderError> {
+    Ok(helper
+        .params()
+        .get(index)
+        .context(error::MissingParamSnafu {
+            index,
+            helper_name: helper.name(),
+        })?
+        .relative_path()
+        .context(error::MissingParamPathSnafu {
+            index,
+            helper_name: helper.name(),
+        })?)
+}
+
+pub fn oci_defaults(
+    helper: &Helper<'_, '_>,
+    _: &Handlebars,
+    _: &Context,
+    renderctx: &mut RenderContext<'_, '_>,
+    out: &mut dyn Output,
+) -> Result<(), RenderError> {
+    // To give context to our errors, get the template name (e.g. what file we are rendering), if available.
+    trace!("Starting oci_defaults helper");
+    let template_name = template_name(renderctx);
+    trace!("Template name: {}", &template_name);
+
+    // Check number of parameters, must be exactly two (OCI spec section to render and settings values for the section)
+    trace!("Number of params: {}", helper.params().len());
+    check_param_count(helper, template_name, 1)?;
+    trace!("params: {:?}", helper.params());
+
+    trace!("Getting the requested OCI spec section to render");
+    let oci_defaults_values = get_param(helper, 0)?;
+    // We want the settings path so we know which OCI spec section we are serializing.
+    let settings_path = get_param_path(helper, 0)?;
+    let oci_spec_section = settings_path.split('.').last().expect("TODO");
+
+    let result_lines = match oci_spec_section {
+        "capabilities" => oci_spec_capabilities(oci_defaults_values)?,
+        "resource-limits" => oci_spec_resource_limits(oci_defaults_values)?,
+        _ => panic!("bad oci_spec_section: {}", oci_spec_section),
+    };
+
+    // Write out the final values to the configuration file
+    out.write(result_lines.as_str())
+        .context(error::TemplateWriteSnafu {
+            template: template_name.to_owned(),
+        })?;
+
+    Ok(())
+}
+
+fn oci_spec_capabilities(value: &Value) -> Result<String, RenderError> {
+    let oci_default_capabilities: HashMap<OciDefaultsCapability, bool> =
+        serde_json::from_value(value.clone())?;
+    info!(
+        "oci_default_capabilities serde_json: {:?}",
+        oci_default_capabilities
+    );
+
+    // Only output the capabilities we support and ignore unknown/unsupported capabilities.
+    let capabilities_lines: Vec<String> = oci_default_capabilities
+        .iter()
+        .filter(|(_, &capability_enabled)| capability_enabled)
+        .map(|(&capability, _)| format!("\"{}\"", capability.as_linux_string()))
+        .collect();
+
+    let capabilities_lines_inner_joined = capabilities_lines.join(",\n");
+
+    let capabilities_lines_joined = format!(
+        "\"bounding\": [
+{capabilities_bounding}
+],
+\"effective\": [
+{capabilities_effective}
+],
+\"permitted\": [
+{capabilities_permitted}
+]",
+        capabilities_bounding = capabilities_lines_inner_joined,
+        capabilities_effective = capabilities_lines_inner_joined,
+        capabilities_permitted = capabilities_lines_inner_joined,
+    );
+
+    trace!("capabilities_lines_joined: \n{}", capabilities_lines_joined);
+
+    Ok(capabilities_lines_joined)
+}
+
+fn oci_spec_resource_limits(value: &Value) -> Result<String, RenderError> {
+    let oci_default_rlimits: HashMap<OciDefaultsResourceLimitType, OciDefaultsResourceLimit> =
+        serde_json::from_value(value.clone())?;
+
+    let mut result_lines = String::new();
+    let mut is_first = true;
+    for (rlimit_type, values) in oci_default_rlimits
+        .iter()
+        // Bottlerocket model values are optional, if we have no hard_limit or soft_limit, we skip
+        // the map entry.
+        .filter(|(_, rlimit)| rlimit.hard_limit.is_some() || rlimit.soft_limit.is_some())
+    {
+        if !is_first {
+            result_lines.push_str(",\n");
+            is_first = false;
+        }
+        let hard_limit = values
+            .hard_limit
+            .unwrap_or(values.soft_limit.unwrap_or_default());
+        let soft_limit = values
+            .soft_limit
+            .unwrap_or(values.hard_limit.unwrap_or_default());
+        let object = format!(
+            "{{
+\"type\": \"{}\",
+\"hard\": {},
+\"soft\": {}
+}}",
+            rlimit_type.as_linux_string(),
+            hard_limit,
+            soft_limit,
+        );
+        result_lines.push_str(&object);
+    }
+    Ok(result_lines)
+}
 
 // =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
 // helpers to the helpers
