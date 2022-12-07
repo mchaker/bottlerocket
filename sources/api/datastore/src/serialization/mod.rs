@@ -77,9 +77,12 @@ impl ser::Serializer for &MapKeySerializer {
     fn serialize_unit_struct(self, _name: &'static str) -> Result<String> {
         bad_key("unit_struct")
     }
-    fn serialize_unit_variant( self, _name: &'static str, _variant_index: u32, _variant: &'static str) -> Result<String> {
-        bad_key("unit_variant")
+    
+    /// A simple enum can be used as if it were a string, so we allow these to serve as map keys.
+    fn serialize_unit_variant( self, _name: &'static str, _variant_index: u32, variant: &'static str) -> Result<String> {
+        self.serialize_str(variant)
     }
+    
     fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, _value: &T) -> Result<String> where T: Serialize {
         bad_key("newtype_struct")
     }
@@ -120,8 +123,21 @@ mod test {
     use super::MapKeySerializer;
     use serde::Serialize;
 
+    #[derive(Debug, Serialize)]
+    enum TestEnum {
+        FooBar,
+    }
+
     #[test]
     fn ok_key() {
+        let serializer = MapKeySerializer::new();
+        let m = TestEnum::FooBar;
+        let res = m.serialize(&serializer).unwrap();
+        assert_eq!(res, "FooBar");
+    }
+
+    #[test]
+    fn ok_enum_key() {
         let serializer = MapKeySerializer::new();
         let m = "A".to_string();
         let res = m.serialize(&serializer).unwrap();
