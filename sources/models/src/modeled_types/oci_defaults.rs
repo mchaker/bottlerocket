@@ -1,5 +1,5 @@
+use scalar_derive::Scalar;
 use serde::{Deserialize, Serialize};
-use serde_plain::{derive_display_from_serialize, derive_fromstr_from_deserialize};
 
 /// OciDefaultsCapabilities is the percent of disk usage after which image
 /// garbage collection is always run. The percent is calculated by dividing this
@@ -8,7 +8,7 @@ use serde_plain::{derive_display_from_serialize, derive_fromstr_from_deserialize
 /// Default: 85
 /// https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Scalar, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum OciDefaultsCapability {
     AuditControl,
@@ -53,9 +53,6 @@ pub enum OciDefaultsCapability {
     Syslog,
     WakeAlarm,
 }
-
-derive_display_from_serialize!(OciDefaultsCapability);
-derive_fromstr_from_deserialize!(OciDefaultsCapability);
 
 impl OciDefaultsCapability {
     /// Converts from Bottlerocket's kabob-case name into the Linux capability name, e.g. turns
@@ -103,14 +100,7 @@ mod oci_defaults_capabilities {
 /// be less than imageGCHighThresholdPercent.
 /// Default: 80
 /// https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
-
-// // TODO - use an enum?
-// #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-// pub struct OciDefaultsResourceLimit {
-//     inner: String,
-// }
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Scalar, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum OciDefaultsResourceLimitType {
     MaxOpenFiles,
