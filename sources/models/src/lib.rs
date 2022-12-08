@@ -453,6 +453,6 @@ struct OciDefaults {
 #[model]
 struct OciDefaultsResourceLimit {
     // TODO - during testing, make sure containerd can take the full range of u64's without issue
-    hard_limit: u64,
-    soft_limit: u64,
+    hard_limit: u32,
+    soft_limit: u32,
 }
