@@ -656,7 +656,7 @@ Meanings of `.hard-limit` and `.soft-limit` can be found in the [`getrlimit` man
 
 The _default_ resource limits can be found in the following file: [sources/models/shared-defaults/oci-resource-limits.toml](sources/models/shared-defaults/oci-resource-limits.toml)
 
-* `settings.oci-defaults.resource-limits.max-open-files`: corresponds to the resource limit `RLIMIT_NOFILE`
+* `settings.oci-defaults.resource-limits.max-open-files`: resource limit `RLIMIT_NOFILE`
 
 #### Container image registry settings
 
