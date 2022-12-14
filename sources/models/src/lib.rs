@@ -452,7 +452,6 @@ struct OciDefaults {
 ///// OCI defaults: Linux process capabilities
 #[model]
 struct OciDefaultsResourceLimit {
-    // TODO - during testing, make sure containerd can take the full range of u64's without issue
     hard_limit: u32,
     soft_limit: u32,
 }
