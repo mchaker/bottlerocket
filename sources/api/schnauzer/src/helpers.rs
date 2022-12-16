@@ -1480,7 +1480,7 @@ fn oci_spec_resource_limits(value: &Value) -> Result<String, RenderError> {
 \"hard\": {},
 \"soft\": {}
 }}",
-            rlimit_type.as_linux_string(),
+            rlimit_type.to_linux_string(),
             hard_limit,
             soft_limit,
         );

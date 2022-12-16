@@ -2,12 +2,12 @@ use scalar_derive::Scalar;
 use serde::{Deserialize, Serialize};
 use serde_plain::{derive_display_from_serialize, derive_fromstr_from_deserialize};
 
-/// OciDefaultsCapabilities is the percent of disk usage after which image
-/// garbage collection is always run. The percent is calculated by dividing this
-/// field value by 100, so this field must be between 0 and 100, inclusive. When
-/// specified, the value must be greater than imageGCLowThresholdPercent.
-/// Default: 85
-/// https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
+/// OciDefaultsCapability specifies which process capabilities are
+/// allowed to be modified in Bottlerocket. The Linux process
+/// capabilities are defined in the Linux manpages (see the man7.org link below).
+/// Default values can be found in: sources/models/shared-defaults/oci-capabilities.toml
+/// OCI spec: https://github.com/opencontainers/runtime-spec/blob/main/config.md#linux-process
+/// Linux kernel capabilities: https://man7.org/linux/man-pages/man7/capabilities.7.html
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Scalar, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -94,13 +94,12 @@ mod oci_defaults_capabilities {
 
 // =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
 
-/// OciDefaultsResourceLimits is the percent of disk usage before which image
-/// garbage collection is never run. Lowest disk usage to garbage collect to.
-/// The percent is calculated by dividing this field value by 100, so the field
-/// value must be between 0 and 100, inclusive. When specified, the value must
-/// be less than imageGCHighThresholdPercent.
-/// Default: 80
-/// https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
+/// OciDefaultsResourceLimitType specifies which resource limits are
+/// allowed to be modified in Bottlerocket. The full list of Linux resource limits can
+/// be found in the Linux manpages (for convenience at the man7.org link below.)
+/// Default values can be found in: sources/models/shared-defaults/oci-resource-limits.toml
+/// OCI spec: https://github.com/opencontainers/runtime-spec/blob/main/config.md#posix-process
+/// Linux resource limits: https://man7.org/linux/man-pages/man2/getrlimit.2.html#DESCRIPTION
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Scalar, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -109,9 +108,30 @@ pub enum OciDefaultsResourceLimitType {
 }
 
 impl OciDefaultsResourceLimitType {
-    pub fn as_linux_string(&self) -> &'static str {
+    pub fn to_linux_string(&self) -> &'static str {
         match self {
             OciDefaultsResourceLimitType::MaxOpenFiles => "RLIMIT_NOFILE",
         }
+    }
+}
+
+#[cfg(test)]
+mod oci_defaults_rlimits {
+    use super::*;
+
+    fn check_rlimit_strings(cap: OciDefaultsResourceLimitType, bottlerocket: &str, linux: &str) {
+        let actual_bottlerocket = cap.to_string();
+        let actual_linux = cap.to_linux_string();
+        assert_eq!(bottlerocket, actual_bottlerocket);
+        assert_eq!(linux, actual_linux);
+    }
+
+    #[test]
+    fn linux_rlimit_strings() {
+        check_rlimit_strings(
+            OciDefaultsResourceLimitType::MaxOpenFiles,
+            "max-open-files",
+            "RLIMIT_NOFILE",
+        );
     }
 }
