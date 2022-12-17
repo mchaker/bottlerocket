@@ -449,7 +449,7 @@ struct OciDefaults {
     resource_limits: HashMap<OciDefaultsResourceLimitType, OciDefaultsResourceLimit>,
 }
 
-///// OCI defaults: Linux process capabilities
+///// OCI defaults: Linux resource limits
 #[model]
 struct OciDefaultsResourceLimit {
     hard_limit: u32,
