@@ -587,6 +587,77 @@ Once you opt-in to use additional OCI hooks, any new orchestrated containers wil
 
 * `settings.oci-hooks.log4j-hotpatch-enabled`: Enables the [hotdog OCI hooks](https://github.com/bottlerocket-os/hotdog), which are used to inject the [Log4j Hot Patch](https://github.com/corretto/hotpatch-for-apache-log4j2) into containers. Defaults to `false`.
 
+#### OCI Defaults settings
+
+Bottlerocket allows you to customize certain parts of the default [OCI spec](https://github.com/opencontainers/runtime-spec/blob/main/config.md) that is applied to workload containers.
+
+The following settings are available:
+
+##### `settings.oci-defaults.capabilities`
+
+All of the `capabilities` settings below are boolean values (`true`/`false`).
+
+The _default_ set of capabilities can be found in the following file: [sources/models/shared-defaults/oci-capabilities.toml](sources/models/shared-defaults/oci-capabilities.toml)
+
+* `settings.oci-defaults.capabilities.audit-control`: process capability `CAP_AUDIT_CONTROL`
+* `settings.oci-defaults.capabilities.audit-read`: process capability `CAP_AUDIT_READ`
+* `settings.oci-defaults.capabilities.audit-write`: process capability `CAP_AUDIT_WRITE`
+* `settings.oci-defaults.capabilities.block-suspend`: process capability `CAP_BLOCK_SUSPEND`
+* `settings.oci-defaults.capabilities.bpf`: process capability `CAP_BPF`
+* `settings.oci-defaults.capabilities.checkpoint-restore`: process capability `CAP_CHECKPOINT_RESTORE`
+* `settings.oci-defaults.capabilities.chown`: process capability `CAP_CHOWN`
+* `settings.oci-defaults.capabilities.dac-override`: process capability `CAP_DAC_OVERRIDE`
+* `settings.oci-defaults.capabilities.dac-read-search`: process capability `CAP_DAC_READ_SEARCH`
+* `settings.oci-defaults.capabilities.fowner`: process capability `CAP_FOWNER`
+* `settings.oci-defaults.capabilities.fsetid`: process capability `CAP_FSETID`
+* `settings.oci-defaults.capabilities.ipc-lock`: process capability `CAP_IPC_LOCK`
+* `settings.oci-defaults.capabilities.ipc-owner`: process capability `CAP_IPC_OWNER`
+* `settings.oci-defaults.capabilities.kill`: process capability `CAP_KILL`
+* `settings.oci-defaults.capabilities.lease`: process capability `CAP_LEASE`
+* `settings.oci-defaults.capabilities.linux-immutable`: process capability `CAP_LINUX_IMMUTABLE`
+* `settings.oci-defaults.capabilities.mac-admin`: process capability `CAP_MAC_ADMIN`
+* `settings.oci-defaults.capabilities.mac-override`: process capability `CAP_MAC_OVERRIDE`
+* `settings.oci-defaults.capabilities.mknod`: process capability `CAP_MKNOD`
+* `settings.oci-defaults.capabilities.net-admin`: process capability `CAP_NET_ADMIN`
+* `settings.oci-defaults.capabilities.net-bind-service`: process capability `CAP_NET_BIND_SERVICE`
+* `settings.oci-defaults.capabilities.net-broadcast`: process capability `CAP_NET_BROADCAST`
+* `settings.oci-defaults.capabilities.net-raw`: process capability `CAP_NET_RAW`
+* `settings.oci-defaults.capabilities.perfmon`: process capability `CAP_PERFMON`
+* `settings.oci-defaults.capabilities.setgid`: process capability `CAP_SETGID`
+* `settings.oci-defaults.capabilities.setfcap`: process capability `CAP_SETFCAP`
+* `settings.oci-defaults.capabilities.setpcap`: process capability `CAP_SETPCAP`
+* `settings.oci-defaults.capabilities.setuid`: process capability `CAP_SETUID`
+* `settings.oci-defaults.capabilities.sys-admin`: process capability `CAP_SYS_ADMIN`
+* `settings.oci-defaults.capabilities.sys-boot`: process capability `CAP_SYS_BOOT`
+* `settings.oci-defaults.capabilities.sys-chroot`: process capability `CAP_SYS_CHROOT`
+* `settings.oci-defaults.capabilities.sys-module`: process capability `CAP_SYS_MODULE`
+* `settings.oci-defaults.capabilities.sys-nice`: process capability `CAP_SYS_NICE`
+* `settings.oci-defaults.capabilities.sys-pacct`: process capability `CAP_SYS_PACCT`
+* `settings.oci-defaults.capabilities.sys-ptrace`: process capability `CAP_SYS_PTRACE`
+* `settings.oci-defaults.capabilities.sys-rawio`: process capability `CAP_SYS_RAWIO`
+* `settings.oci-defaults.capabilities.sys-resource`: process capability `CAP_SYS_RESOURCE`
+* `settings.oci-defaults.capabilities.sys-time`: process capability `CAP_SYS_TIME`
+* `settings.oci-defaults.capabilities.sys-tty-config`: process capability `CAP_SYS_TTY_CONFIG`
+* `settings.oci-defaults.capabilities.syslog`: process capability `CAP_SYSLOG`
+* `settings.oci-defaults.capabilities.wake-alarm`: process capability `CAP_WAKE_ALARM`
+
+##### `settings.oci-defaults.resource-limits`
+
+Each of the `resource-limits` settings below contain two numeric fields: `.hard-limit` and `.soft-limit`, which are 32-bit unsigned integers.
+
+Meanings of `.hard-limit` and `.soft-limit` can be found in the [`getrlimit` manpage](https://man7.org/linux/man-pages/man2/getrlimit.2.html), specifically:
+
+> The hard limit acts as a ceiling for the
+> soft limit: an unprivileged process may set only its soft limit
+> to a value in the range from 0 up to the hard limit, and
+> (irreversibly) lower its hard limit.  A privileged process (under
+> Linux: one with the CAP_SYS_RESOURCE capability in the initial
+> user namespace) may make arbitrary changes to either limit value.
+
+The _default_ resource limits can be found in the following file: [sources/models/shared-defaults/oci-resource-limits.toml](sources/models/shared-defaults/oci-resource-limits.toml)
+
+* `settings.oci-defaults.resource-limits.max-open-files`: resource limit `RLIMIT_NOFILE`
+
 #### Container image registry settings
 
 The following setting is optional and allows you to configure image registry mirrors and pull-through caches for your containers.

@@ -7,6 +7,8 @@ use handlebars::{
     handlebars_helper, Context, Handlebars, Helper, Output, RenderContext, RenderError,
 };
 use lazy_static::lazy_static;
+use model::modeled_types::{OciDefaultsCapability, OciDefaultsResourceLimitType};
+use model::OciDefaultsResourceLimit;
 use serde::Deserialize;
 use serde_json::value::Value;
 use snafu::{OptionExt, ResultExt};
@@ -14,6 +16,7 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::vec;
 use url::Url;
 
 lazy_static! {
@@ -230,6 +233,13 @@ mod error {
 
         #[snafu(display("Missing param {} for helper '{}'", index, helper_name))]
         MissingParam { index: usize, helper_name: String },
+
+        #[snafu(display(
+            "Missing parameter path for param {} for helper '{}'",
+            index,
+            helper_name
+        ))]
+        MissingParamPath { index: usize, helper_name: String },
 
         #[snafu(display(
             "Missing data and fail-if-missing was set; see given line/col in template '{}'",
@@ -1345,6 +1355,138 @@ handlebars_helper!(any_enabled: |arg: Value| {
     }
     result
 });
+
+/// This helper writes out the default OCI runtime spec.
+///
+/// Default settings are specified in the following files:
+/// * sources/models/shared-defaults/oci-resource-limits.toml
+/// * sources/models/shared-defaults/oci-capabilities.toml
+
+fn get_param_path<'a>(helper: &'a Helper<'_, '_>, index: usize) -> Result<&'a String, RenderError> {
+    Ok(helper
+        .params()
+        .get(index)
+        .context(error::MissingParamSnafu {
+            index,
+            helper_name: helper.name(),
+        })?
+        .relative_path()
+        .context(error::MissingParamPathSnafu {
+            index,
+            helper_name: helper.name(),
+        })?)
+}
+
+pub fn oci_defaults(
+    helper: &Helper<'_, '_>,
+    _: &Handlebars,
+    _: &Context,
+    renderctx: &mut RenderContext<'_, '_>,
+    out: &mut dyn Output,
+) -> Result<(), RenderError> {
+    // To give context to our errors, get the template name (e.g. what file we are rendering), if available.
+    trace!("Starting oci_defaults helper");
+    let template_name = template_name(renderctx);
+    trace!("Template name: {}", &template_name);
+
+    // Check number of parameters, must be exactly two (OCI spec section to render and settings values for the section)
+    trace!("Number of params: {}", helper.params().len());
+    check_param_count(helper, template_name, 1)?;
+    trace!("params: {:?}", helper.params());
+
+    trace!("Getting the requested OCI spec section to render");
+    let oci_defaults_values = get_param(helper, 0)?;
+    // We want the settings path so we know which OCI spec section we are serializing.
+    let settings_path = get_param_path(helper, 0)?;
+    let oci_spec_section = settings_path
+        .split('.')
+        .last()
+        .expect("did not find (got None for) an oci_spec_section");
+
+    let result_lines = match oci_spec_section {
+        "capabilities" => oci_spec_capabilities(oci_defaults_values)?,
+        "resource-limits" => oci_spec_resource_limits(oci_defaults_values)?,
+        _ => panic!("bad oci_spec_section: {}", oci_spec_section),
+    };
+
+    // Write out the final values to the configuration file
+    out.write(result_lines.as_str())
+        .context(error::TemplateWriteSnafu {
+            template: template_name.to_owned(),
+        })?;
+
+    Ok(())
+}
+
+fn oci_spec_capabilities(value: &Value) -> Result<String, RenderError> {
+    let oci_default_capabilities: HashMap<OciDefaultsCapability, bool> =
+        serde_json::from_value(value.clone())?;
+
+    // Only output the capabilities we support and ignore unknown/unsupported capabilities.
+    let capabilities_lines: Vec<String> = oci_default_capabilities
+        .iter()
+        .filter(|(_, &capability_enabled)| capability_enabled)
+        .map(|(&capability, _)| format!("\"{}\"", capability.to_linux_string()))
+        .collect();
+
+    let capabilities_lines_inner_joined = capabilities_lines.join(",\n");
+
+    let capabilities_lines_joined = format!(
+        "\"bounding\": [
+{capabilities_bounding}
+],
+\"effective\": [
+{capabilities_effective}
+],
+\"permitted\": [
+{capabilities_permitted}
+]",
+        capabilities_bounding = capabilities_lines_inner_joined,
+        capabilities_effective = capabilities_lines_inner_joined,
+        capabilities_permitted = capabilities_lines_inner_joined,
+    );
+
+    trace!("capabilities_lines_joined: \n{}", capabilities_lines_joined);
+
+    Ok(capabilities_lines_joined)
+}
+
+fn oci_spec_resource_limits(value: &Value) -> Result<String, RenderError> {
+    let oci_default_rlimits: HashMap<OciDefaultsResourceLimitType, OciDefaultsResourceLimit> =
+        serde_json::from_value(value.clone())?;
+
+    let mut result_lines = String::new();
+    let mut is_first = true;
+    for (rlimit_type, values) in oci_default_rlimits
+        .iter()
+        // Bottlerocket model values are optional, if we have no hard_limit or soft_limit, we skip
+        // the map entry.
+        .filter(|(_, rlimit)| rlimit.hard_limit.is_some() || rlimit.soft_limit.is_some())
+    {
+        if !is_first {
+            result_lines.push_str(",\n");
+            is_first = false;
+        }
+        let hard_limit = values
+            .hard_limit
+            .unwrap_or(values.soft_limit.unwrap_or_default());
+        let soft_limit = values
+            .soft_limit
+            .unwrap_or(values.hard_limit.unwrap_or_default());
+        let object = format!(
+            "{{
+\"type\": \"{}\",
+\"hard\": {},
+\"soft\": {}
+}}",
+            rlimit_type.to_linux_string(),
+            hard_limit,
+            soft_limit,
+        );
+        result_lines.push_str(&object);
+    }
+    Ok(result_lines)
+}
 
 // =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
 // helpers to the helpers

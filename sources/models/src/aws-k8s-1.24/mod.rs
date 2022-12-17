@@ -6,8 +6,8 @@ use crate::modeled_types::Identifier;
 use crate::{
     AwsSettings, BootSettings, BootstrapContainer, CloudFormationSettings,
     ContainerRuntimeSettings, DnsSettings, HostContainer, KernelSettings, KubernetesSettings,
-    MetricsSettings, NetworkSettings, NtpSettings, OciHooks, PemCertificate, RegistrySettings,
-    UpdatesSettings,
+    MetricsSettings, NetworkSettings, NtpSettings, OciDefaults, OciHooks, PemCertificate,
+    RegistrySettings, UpdatesSettings,
 };
 
 // Note: we have to use 'rename' here because the top-level Settings structure is the only one
@@ -27,6 +27,7 @@ struct Settings {
     metrics: MetricsSettings,
     pki: HashMap<Identifier, PemCertificate>,
     container_registry: RegistrySettings,
+    oci_defaults: OciDefaults,
     oci_hooks: OciHooks,
     cloudformation: CloudFormationSettings,
     dns: DnsSettings,
