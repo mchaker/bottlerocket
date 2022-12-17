@@ -1398,7 +1398,10 @@ pub fn oci_defaults(
     let oci_defaults_values = get_param(helper, 0)?;
     // We want the settings path so we know which OCI spec section we are serializing.
     let settings_path = get_param_path(helper, 0)?;
-    let oci_spec_section = settings_path.split('.').last().expect("TODO");
+    let oci_spec_section = settings_path
+        .split('.')
+        .last()
+        .expect("did not find (got None for) an oci_spec_section");
 
     let result_lines = match oci_spec_section {
         "capabilities" => oci_spec_capabilities(oci_defaults_values)?,
@@ -1418,10 +1421,6 @@ pub fn oci_defaults(
 fn oci_spec_capabilities(value: &Value) -> Result<String, RenderError> {
     let oci_default_capabilities: HashMap<OciDefaultsCapability, bool> =
         serde_json::from_value(value.clone())?;
-    info!(
-        "oci_default_capabilities serde_json: {:?}",
-        oci_default_capabilities
-    );
 
     // Only output the capabilities we support and ignore unknown/unsupported capabilities.
     let capabilities_lines: Vec<String> = oci_default_capabilities
